@@ -5,6 +5,7 @@ import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../db/client';
 import migrations from '../db/migrations/migrations';
 import { syncState } from '../db/schema';
@@ -25,6 +26,7 @@ function App() {
   const session = useLiveQuery(db.select().from(syncState));
   const signedIn = session.data.length > 0;
   const tapped = Notifications.useLastNotificationResponse();
+  const insets = useSafeAreaInsets();
 
   // Sync on open/foreground and after local changes; reschedule the Daily digest after every open and sync.
   useEffect(() => {
@@ -44,7 +46,12 @@ function App() {
   return (
     <>
       <StatusBar style="dark" />
-      {signedIn ? <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.surface } }} /> : <SignInScreen />}
+      {signedIn ? (
+        // Top inset: ScreenHeader / WizardStep. Bottom inset: here for every pushed screen; the tab bar pads itself.
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.surface, paddingBottom: insets.bottom } }}>
+          <Stack.Screen name="(tabs)" options={{ contentStyle: { backgroundColor: color.surface } }} />
+        </Stack>
+      ) : <SignInScreen />}
     </>
   );
 }

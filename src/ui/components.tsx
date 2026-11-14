@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { type ComponentProps, type ReactNode, useState } from 'react';
+import { type ComponentProps, type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
-  Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputProps, View, type ViewStyle,
+  Animated, Dimensions, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputProps, View, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatAmount, stepFor } from '../domain/amount';
@@ -157,7 +157,7 @@ export function WizardStep({ step, of, title, children, onBack, onNext, nextLabe
       <Body style={{ flex: 1 }} {...(scroll ? { contentContainerStyle: s.wizardBody, keyboardShouldPersistTaps: 'handled' as const } : {})}>
         {children}
       </Body>
-      <View style={[s.bottomBar, { paddingBottom: insets.bottom + space.md }]}>
+      <View style={[s.bottomBar, { paddingBottom: space.md }]}>
         <Button label="Back" kind="secondary" onPress={onBack} />
         <View style={{ flex: 1 }} />
         {onSaveNext && <Button label="Save & scan next" kind="secondary" onPress={onSaveNext} disabled={nextDisabled} />}
@@ -200,15 +200,53 @@ export function Field({ label, style, ...input }: TextInputProps & { label: stri
   );
 }
 
-/** Bottom sheet for pickers and menus. */
+/** Bottom sheet for pickers and menus. Scrim fades; sheet slides — animated separately so the scrim doesn't travel with the sheet. */
 export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title?: string; children: ReactNode }) {
   const insets = useSafeAreaInsets();
+  const [rendered, setRendered] = useState(visible);
+  if (visible && !rendered) setRendered(true); // stays mounted after close until the slide-out finishes
+  const [progress] = useState(() => new Animated.Value(visible ? 1 : 0));
+  const [drag] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    if (visible) drag.setValue(0);
+    Animated.timing(progress, { toValue: visible ? 1 : 0, duration: 220, useNativeDriver: true })
+      .start(({ finished }) => { if (finished && !visible) setRendered(false); });
+  }, [visible, progress, drag]);
+
+  // Grab bar: tap or swipe down to close; a short swipe springs back.
+  // Dragging only moves an Animated.Value (no re-render), so recreating this per onClose never interrupts a gesture.
+  const pan = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderMove: (_e, g) => drag.setValue(Math.max(0, g.dy)),
+    onPanResponderRelease: (_e, g) => {
+      if (Math.abs(g.dy) < 5 || g.dy > 80 || g.vy > 0.5) onClose();
+      else Animated.spring(drag, { toValue: 0, useNativeDriver: true }).start();
+    },
+    onPanResponderTerminate: () => Animated.spring(drag, { toValue: 0, useNativeDriver: true }).start(),
+  }), [drag, onClose]);
+
+  if (!rendered) return null;
+  const offscreen = Dimensions.get('window').height;
+  const translateY = Animated.add(progress.interpolate({ inputRange: [0, 1], outputRange: [offscreen, 0] }), drag);
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={s.scrim} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button" />
-      <View style={[s.sheet, { paddingBottom: insets.bottom + space.lg }]}>
-        {!!title && <Text style={s.sheetTitle} accessibilityRole="header">{title}</Text>}
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space.sm }}>{children}</ScrollView>
+    <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
+      <Animated.View style={[s.scrim, { opacity: progress }]}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button" />
+      </Animated.View>
+      <View style={s.sheetDock} pointerEvents="box-none">
+        <Animated.View style={[s.sheet, { paddingBottom: insets.bottom + space.lg, transform: [{ translateY }] }]}>
+          <View
+            {...pan.panHandlers} style={s.sheetGrab}
+            accessible accessibilityRole="button" accessibilityLabel="Close"
+            accessibilityActions={[{ name: 'activate' }]} onAccessibilityAction={onClose}
+          >
+            <View style={s.sheetHandle} />
+            {!!title && <Text style={s.sheetTitle} accessibilityRole="header">{title}</Text>}
+          </View>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space.sm }}>{children}</ScrollView>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -258,8 +296,11 @@ export const s = StyleSheet.create({
   qtyUnit: { fontSize: font.md, color: color.inkMuted },
   label: { fontSize: font.sm, color: color.inkMuted },
   input: { minHeight: TOUCH, borderWidth: 1, borderColor: color.line, borderRadius: radius.sm, paddingHorizontal: space.md, fontSize: font.md, color: color.ink },
-  scrim: { flex: 1, backgroundColor: 'rgba(22,48,42,0.4)' },
-  sheet: { backgroundColor: color.surface, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space.lg, gap: space.md, maxHeight: '80%', elevation: 12 },
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(22,48,42,0.4)' },
+  sheetDock: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { backgroundColor: color.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: space.lg, gap: space.md, maxHeight: '80%', elevation: 12 },
+  sheetGrab: { paddingTop: space.sm, paddingBottom: space.xs, gap: space.md, minHeight: TOUCH },
+  sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: radius.full, backgroundColor: color.line },
   sheetTitle: { fontFamily: font.title, fontSize: font.lg, color: color.dark },
   sectionTitle: { fontSize: font.sm, fontWeight: '600', color: color.inkMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   text: { fontSize: font.md, color: color.ink },

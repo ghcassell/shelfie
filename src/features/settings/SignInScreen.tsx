@@ -26,7 +26,7 @@ export default function SignInScreen() {
   };
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={[s.body, { paddingTop: insets.top + space.xxl }]} keyboardShouldPersistTaps="handled">
+    <ScrollView style={s.screen} contentContainerStyle={[s.body, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.screen }]} keyboardShouldPersistTaps="handled">
       <Text style={{ fontFamily: font.title, fontSize: 40, color: color.dark }} accessibilityRole="header">Shelfie</Text>
       <Text style={s.muted}>Know what is in your larder, and use it before it goes off.</Text>
 
