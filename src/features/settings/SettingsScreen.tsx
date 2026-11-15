@@ -8,7 +8,8 @@ import { addLocation, deleteAllProducts, deleteLocation, renameLocation, setWarn
 import { households, members } from '../../db/schema';
 import { sync, useSyncStatus } from '../../sync';
 import { Button, Field, IconButton, ListRow, s, ScreenHeader, Section, Sheet } from '../../ui/components';
-import { alert, pickDateTime } from '../../ui/platform';
+import Dialog from '../../ui/Dialog';
+import { pickDateTime } from '../../ui/platform';
 import { color, space } from '../../ui/theme';
 import { getDigestSettings, setDigestSettings } from './digest';
 import { addIgnored, getIgnored, removeIgnored } from '../receipt/ignoreList';
@@ -28,35 +29,13 @@ export default function SettingsScreen() {
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [message, setMessage] = useState('');
   const [dangerMessage, setDangerMessage] = useState('');
+  const [locationInUse, setLocationInUse] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleteStep, setDeleteStep] = useState<1 | 2 | null>(null);
 
   const changeDigest = (patch: Partial<typeof digest>) => { setDigest({ ...digest, ...patch }); setDigestSettings(patch); };
   const run = (action: () => Promise<unknown>) => action().catch(() => setMessage('That did not work. Try again.'));
-  const confirmDeleteAllProducts = () => alert(
-    'Warning',
-    'This will remove every product and batch for this Household on both phones.',
-    [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Continue',
-        style: 'destructive',
-        onPress: () => alert(
-          'Are you sure?',
-          'This cannot be undone.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Delete all products',
-              style: 'destructive',
-              onPress: () => {
-                deleteAllProducts();
-                setDangerMessage('All products were deleted.');
-              },
-            },
-          ],
-        ),
-      },
-    ],
-  );
+  const confirmDeleteAllProducts = () => setDeleteStep(1);
   const syncText = status === 'syncing' ? 'Syncing…'
     : status === 'unavailable' ? 'Sync unavailable. Shelfie keeps working on this phone.'
     : lastSynced ? `Synced at ${pad(lastSynced.getHours())}:${pad(lastSynced.getMinutes())}` : 'Not synced yet';
@@ -72,7 +51,7 @@ export default function SettingsScreen() {
               right={
                 <IconButton
                   icon="trash-can-outline" label={`Delete ${l.name}`} tint={color.inkMuted}
-                  onPress={() => { if (!deleteLocation(l.id)) alert('Still in use', `Move or finish what is in ${l.name} first.`); }}
+                  onPress={() => setPendingDelete({ id: l.id, name: l.name })}
                 />
               }
             />
@@ -151,6 +130,52 @@ export default function SettingsScreen() {
         <Button label="Save" disabled={!renaming?.name.trim()} onPress={() => { renameLocation(renaming!.id, renaming!.name); setRenaming(null); }} />
         <View style={{ height: space.sm }} />
       </Sheet>
+
+      <Dialog
+        visible={!!pendingDelete}
+        onDismiss={() => setPendingDelete(null)}
+        title="Remove location?"
+        message={`Remove "${pendingDelete?.name}"? This cannot be undone.`}
+        buttons={[
+          { label: 'Cancel', onPress: () => setPendingDelete(null) },
+          {
+            label: 'Remove', variant: 'destructive', onPress: () => {
+              if (!deleteLocation(pendingDelete!.id)) setLocationInUse(pendingDelete!.name);
+              setPendingDelete(null);
+            },
+          },
+        ]}
+      />
+
+      <Dialog
+        visible={!!locationInUse}
+        onDismiss={() => setLocationInUse(null)}
+        title="Still in use"
+        message={`Move or finish what is in ${locationInUse} first.`}
+        buttons={[{ label: 'OK', variant: 'primary', onPress: () => setLocationInUse(null) }]}
+      />
+
+      <Dialog
+        visible={deleteStep === 1}
+        onDismiss={() => setDeleteStep(null)}
+        title="Warning"
+        message="This will remove every product and batch for this Household on both phones."
+        buttons={[
+          { label: 'Cancel', onPress: () => setDeleteStep(null) },
+          { label: 'Continue', variant: 'destructive', onPress: () => setDeleteStep(2) },
+        ]}
+      />
+
+      <Dialog
+        visible={deleteStep === 2}
+        onDismiss={() => setDeleteStep(null)}
+        title="Are you sure?"
+        message="This cannot be undone."
+        buttons={[
+          { label: 'Cancel', onPress: () => setDeleteStep(null) },
+          { label: 'Delete all products', variant: 'destructive', onPress: () => { deleteAllProducts(); setDangerMessage('All products were deleted.'); setDeleteStep(null); } },
+        ]}
+      />
     </View>
   );
 }
