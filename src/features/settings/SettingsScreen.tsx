@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Linking, Platform, ScrollView, Switch, Text, View } from 'react-native';
 import { db } from '../../db/client';
 import { useLarder } from '../../db/queries';
-import { addLocation, deleteAllProducts, deleteLocation, renameLocation, setWarningDays } from '../../db/repositories';
+import { addLocation, deleteAllProducts, deleteLocation, moveLocation, renameLocation, setWarningDays } from '../../db/repositories';
 import { households, members } from '../../db/schema';
 import { sync, useSyncStatus } from '../../sync';
 import Toast from 'react-native-toast-message';
@@ -44,14 +44,18 @@ export default function SettingsScreen() {
       <ScreenHeader title="Settings" back />
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         <Section title="Locations">
-          {locations.map((l) => (
+          {locations.map((l, i) => (
             <ListRow
               key={l.id} title={l.name} onPress={() => setRenaming({ id: l.id, name: l.name })}
               right={
-                <IconButton
-                  icon="trash-can-outline" label={`Delete ${l.name}`} tint={color.inkMuted}
-                  onPress={() => setPendingDelete({ id: l.id, name: l.name })}
-                />
+                <>
+                  <IconButton icon="arrow-up" label={`Move ${l.name} up`} tint={color.inkMuted} disabled={i === 0} onPress={() => moveLocation(l.id, -1)} />
+                  <IconButton icon="arrow-down" label={`Move ${l.name} down`} tint={color.inkMuted} disabled={i === locations.length - 1} onPress={() => moveLocation(l.id, 1)} />
+                  <IconButton
+                    icon="trash-can-outline" label={`Delete ${l.name}`} tint={color.inkMuted}
+                    onPress={() => setPendingDelete({ id: l.id, name: l.name })}
+                  />
+                </>
               }
             />
           ))}

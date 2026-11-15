@@ -33,6 +33,7 @@ export const householdSettings = sqliteTable('household_settings', {
 export const locations = sqliteTable('locations', {
   ...synced,
   name: text('name').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
 });
 
 export const products = sqliteTable('products', {

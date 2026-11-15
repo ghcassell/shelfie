@@ -53,9 +53,27 @@ export function addLocation(name: string): string {
   const existing = db.select().from(locations)
     .where(and(isNull(locations.deletedAt), sql`lower(${locations.name}) = ${clean.toLowerCase()}`)).get();
   if (existing) return existing.id;
-  const row = { ...base(), name: clean };
+  const last = db.select({ n: sql<number | null>`max(${locations.sortOrder})` }).from(locations).get()?.n ?? -1;
+  const row = { ...base(), name: clean, sortOrder: last + 1 };
   db.insert(locations).values(row).run();
   return row.id;
+}
+
+/** Live Locations in the order the Household chose; ties (never reordered) keep the order they were added. */
+export const locationOrder = [locations.sortOrder, sql`rowid`] as const;
+
+/** Moves a Location one place up (-1) or down (1), renumbering so every live Location has its own place. */
+export function moveLocation(id: string, by: -1 | 1) {
+  const live = db.select().from(locations).where(isNull(locations.deletedAt)).orderBy(...locationOrder).all();
+  const from = live.findIndex((l) => l.id === id);
+  const to = from + by;
+  if (from < 0 || to < 0 || to >= live.length) return;
+  [live[from], live[to]] = [live[to], live[from]];
+  db.transaction((tx) => {
+    live.forEach((l, i) => {
+      if (l.sortOrder !== i) tx.update(locations).set({ sortOrder: i, ...dirty() }).where(eq(locations.id, l.id)).run();
+    });
+  });
 }
 
 export const renameLocation = (id: string, name: string) =>

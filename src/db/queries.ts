@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { toDay } from '../domain/dates';
 import { ATTENTION, buildRows, type LarderRow } from '../domain/larder';
 import { db } from './client';
+import { locationOrder } from './repositories';
 import { batches, type BatchRow, householdSettings, locations, type ProductRow, products, usageEntries } from './schema';
 
 export type Row = LarderRow<BatchRow, ProductRow>;
@@ -12,7 +13,7 @@ export type Row = LarderRow<BatchRow, ProductRow>;
 export function useLarder() {
   const b = useLiveQuery(db.select().from(batches).where(isNull(batches.deletedAt))).data;
   const p = useLiveQuery(db.select().from(products)).data;
-  const l = useLiveQuery(db.select().from(locations).where(isNull(locations.deletedAt))).data;
+  const l = useLiveQuery(db.select().from(locations).where(isNull(locations.deletedAt)).orderBy(...locationOrder)).data;
   const allLocations = useLiveQuery(db.select().from(locations)).data;
   const e = useLiveQuery(db.select().from(usageEntries)).data;
   const settings = useLiveQuery(db.select().from(householdSettings)).data;
