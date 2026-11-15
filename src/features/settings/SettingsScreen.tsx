@@ -7,6 +7,7 @@ import { useLarder } from '../../db/queries';
 import { addLocation, deleteAllProducts, deleteLocation, renameLocation, setWarningDays } from '../../db/repositories';
 import { households, members } from '../../db/schema';
 import { sync, useSyncStatus } from '../../sync';
+import Toast from 'react-native-toast-message';
 import { Button, Field, IconButton, ListRow, s, ScreenHeader, Section, Sheet } from '../../ui/components';
 import Dialog from '../../ui/Dialog';
 import { pickDateTime } from '../../ui/platform';
@@ -27,14 +28,12 @@ export default function SettingsScreen() {
   const [ignored, setIgnored] = useState(getIgnored);
   const [newIgnore, setNewIgnore] = useState('');
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
-  const [message, setMessage] = useState('');
-  const [dangerMessage, setDangerMessage] = useState('');
   const [locationInUse, setLocationInUse] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [deleteStep, setDeleteStep] = useState<1 | 2 | null>(null);
 
   const changeDigest = (patch: Partial<typeof digest>) => { setDigest({ ...digest, ...patch }); setDigestSettings(patch); };
-  const run = (action: () => Promise<unknown>) => action().catch(() => setMessage('That did not work. Try again.'));
+  const run = (action: () => Promise<unknown>) => action().catch((e: unknown) => Toast.show({ type: 'error', text1: e instanceof Error ? e.message : 'That did not work. Try again.' }));
   const confirmDeleteAllProducts = () => setDeleteStep(1);
   const syncText = status === 'syncing' ? 'Syncing…'
     : status === 'unavailable' ? 'Sync unavailable. Shelfie keeps working on this phone.'
@@ -98,15 +97,17 @@ export default function SettingsScreen() {
           <ListRow title="Export for reading (CSV)" subtitle="A zip of three spreadsheets" onPress={() => run(exportCsv)} />
           <ListRow
             title="Restore a backup" subtitle="Only into an empty Household"
-            onPress={() => run(async () => setMessage((await restoreFromFile()) ?? ''))}
+            onPress={() => run(async () => {
+              const err = await restoreFromFile();
+              if (err) Toast.show({ type: 'error', text1: err });
+              else Toast.show({ type: 'success', text1: 'Backup restored' });
+            })}
           />
-          {!!message && <Text style={s.error}>{message}</Text>}
         </Section>
 
         <Section title="Empty Larder">
           <Text style={s.muted}>Removes every product and batch from this Household.</Text>
           <Button label="Delete all products" kind="destructive" onPress={confirmDeleteAllProducts} />
-          {!!dangerMessage && <Text style={s.error}>{dangerMessage}</Text>}
         </Section>
 
         <Section title="Household and sync">
@@ -173,7 +174,7 @@ export default function SettingsScreen() {
         message="This cannot be undone."
         buttons={[
           { label: 'Cancel', onPress: () => setDeleteStep(null) },
-          { label: 'Delete all products', variant: 'destructive', onPress: () => { deleteAllProducts(); setDangerMessage('All products were deleted.'); setDeleteStep(null); } },
+          { label: 'Delete all products', variant: 'destructive', onPress: () => { deleteAllProducts(); Toast.show({ type: 'info', text1: 'All products deleted' }); setDeleteStep(null); } },
         ]}
       />
     </View>

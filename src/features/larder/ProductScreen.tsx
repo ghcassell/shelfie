@@ -6,6 +6,7 @@ import { undoEntry, updateProduct } from '../../db/repositories';
 import { canUndo, formatAmount } from '../../domain/amount';
 import { formatDay, toDay } from '../../domain/dates';
 import { WASTE_REASONS } from '../../domain/types';
+import Toast from 'react-native-toast-message';
 import { Button, Chip, Field, Form, ListRow, s, ScreenHeader, Section } from '../../ui/components';
 import { PhotoField } from '../add/camera';
 
@@ -32,11 +33,14 @@ export default function ProductScreen() {
 
   const set = (key: string) => (value: string) => setForm({ ...form, [key]: value });
   const unit = product.baseUnit;
-  const save = () => updateProduct(product.id, {
-    name: form.name.trim() || product.name, brand: form.brand.trim() || null, size: form.size.trim() || null, category: form.category.trim() || null,
-    packAmount: num(form.packAmount) ?? product.packAmount,
-    openedShelfLifeDays: num(form.opened), warningDays: num(form.warning), lowThreshold: num(form.low),
-  });
+  const save = () => {
+    updateProduct(product.id, {
+      name: form.name.trim() || product.name, brand: form.brand.trim() || null, size: form.size.trim() || null, category: form.category.trim() || null,
+      packAmount: num(form.packAmount) ?? product.packAmount,
+      openedShelfLifeDays: num(form.opened), warningDays: num(form.warning), lowThreshold: num(form.low),
+    });
+    Toast.show({ type: 'success', text1: 'Saved' });
+  };
 
   const batchIds = new Set(all.filter((r) => r.product.id === product.id).map((r) => r.batch.id));
   const history = entries.filter((e) => batchIds.has(e.batchId)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));

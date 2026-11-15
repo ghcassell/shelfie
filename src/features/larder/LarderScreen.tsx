@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import {
     FlatList,
+    Platform,
     RefreshControl,
     ScrollView,
     TextInput,
@@ -58,6 +59,15 @@ export default function LarderScreen() {
                         label: "Waste report",
                         onPress: () => router.push("/waste"),
                     },
+                    // The table needs a wide window, so only the browser offers it.
+                    ...(Platform.OS === "web"
+                        ? [
+                              {
+                                  label: "Tidy up (table)",
+                                  onPress: () => router.push("/tidy"),
+                              },
+                          ]
+                        : []),
                 ]}
             >
             {larder.length > 0 && (

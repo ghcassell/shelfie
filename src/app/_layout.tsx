@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db, dbReady } from '../db/client';
 import migrations from '../db/migrations/migrations';
@@ -12,6 +13,7 @@ import { rescheduleDigest, useDigestTap } from '../features/settings/digest';
 import SignInScreen from '../features/settings/SignInScreen';
 import { onAfterSync, startSyncTriggers } from '../sync';
 import { s } from '../ui/components';
+import { toastConfig } from '../ui/Toast';
 import { color } from '../ui/theme';
 
 export default function RootLayout() {
@@ -34,6 +36,7 @@ function App() {
   const session = useLiveQuery(db.select().from(syncState));
   const signedIn = session.data.length > 0;
   const insets = useSafeAreaInsets();
+  const wide = usePathname() === '/tidy'; // the tidy table uses the whole window
 
   // Sync on open/foreground and after local changes; reschedule the Daily digest after every open and sync.
   useEffect(() => {
@@ -49,7 +52,7 @@ function App() {
   return (
     // Android is edge-to-edge, so the window no longer resizes for the keyboard. Padding it here shrinks every screen's
     // ScrollView, and a shrinking ScrollView scrolls its focused input into view.
-    <KeyboardAvoidingView behavior="padding" style={[{ flex: 1 }, Platform.OS === 'web' && WEB_COLUMN]}>
+    <KeyboardAvoidingView behavior="padding" style={[{ flex: 1 }, Platform.OS === 'web' && !wide && WEB_COLUMN]}>
       <StatusBar style="dark" />
       {signedIn ? (
         // Top inset: ScreenHeader / WizardStep. Bottom inset: here for every pushed screen; the tab bar pads itself.
@@ -57,9 +60,12 @@ function App() {
           <Stack.Screen name="(tabs)" options={{ contentStyle: { backgroundColor: color.surface } }} />
         </Stack>
       ) : <SignInScreen />}
+      <Toast config={toastConfig} position="bottom" bottomOffset={TAB_BAR_HEIGHT + insets.bottom + 8} />
     </KeyboardAvoidingView>
   );
 }
 
-// ponytail: the phone layout in a centred column. A wide table view for bulk tidying is the upgrade.
+// In the browser every screen but the tidy table is the phone layout in a centred column.
 const WEB_COLUMN = { width: '100%', maxWidth: 720, alignSelf: 'center' } as const;
+// Tab bar: 58dp item + 4dp padding top/bottom; toast clears it on all screens.
+const TAB_BAR_HEIGHT = 66;

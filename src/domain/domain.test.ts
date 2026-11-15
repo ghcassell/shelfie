@@ -5,6 +5,7 @@ import { compareUrgency, digestText, effectiveExpiry, pillText, rowLabel, spoken
 import { buildBackup, checkBackup, toCsv } from './export';
 import { allowLookup, productFromOff } from './off';
 import { shoppingTrigger, totalStock } from './stock';
+import { parsePrice, sortRows } from './tidy';
 import type { Batch, UsageEntry } from './types';
 import { wasteReport, wasteTotalText } from './waste';
 
@@ -236,5 +237,29 @@ describe('Emoji for a Product with no photo', () => {
     expect(emojiFor('Toilet rolls')).toBe('🧻');
     expect(emojiFor('Hand cream')).toBe('🧴');
     expect(emojiFor('Hot dogs')).toBe('🌭');
+  });
+});
+
+describe('tidy table', () => {
+  const row = (name: string, brand: string | null, pricePence: number | null) =>
+    ({ batch: batch({ id: name, pricePence }), product: { name, brand }, locationName: 'Cupboard' }) as any;
+  const rows = [row('beans', null, 80), row('Apples', 'Pink Lady', null), row('Cheese', 'cathedral', 350)];
+  const names = (sorted: { product: { name: string } }[]) => sorted.map((r) => r.product.name);
+
+  test('sorts ignoring case, and keeps blanks last in both directions', () => {
+    expect(names(sortRows(rows, 'name', false))).toEqual(['Apples', 'beans', 'Cheese']);
+    expect(names(sortRows(rows, 'brand', false))).toEqual(['Cheese', 'Apples', 'beans']);
+    expect(names(sortRows(rows, 'brand', true))).toEqual(['Apples', 'Cheese', 'beans']);
+    expect(names(sortRows(rows, 'price', true))).toEqual(['Cheese', 'beans', 'Apples']);
+    expect(names(rows)).toEqual(['beans', 'Apples', 'Cheese']); // the input is left alone
+  });
+  test('a typed price becomes pence, blank clears it, and nonsense is refused', () => {
+    expect(parsePrice('1.50')).toBe(150);
+    expect(parsePrice(' £2,05 ')).toBe(205);
+    expect(parsePrice('3')).toBe(300);
+    expect(parsePrice('')).toBeNull();
+    expect(parsePrice('abc')).toBeUndefined();
+    expect(parsePrice('1.2.3')).toBeUndefined();
+    expect(parsePrice('-1')).toBeUndefined();
   });
 });

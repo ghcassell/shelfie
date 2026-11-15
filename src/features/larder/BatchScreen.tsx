@@ -8,6 +8,7 @@ import { formatDay } from '../../domain/dates';
 import { pillText } from '../../domain/expiry';
 import { WASTE_REASONS, type WasteReason } from '../../domain/types';
 import { formatPence } from '../../domain/waste';
+import Toast from 'react-native-toast-message';
 import { Button, Chip, Field, ListRow, ProductTile, QuantityPicker, s, ScreenHeader, Section, Sheet, StatusPill } from '../../ui/components';
 import { alert } from '../../ui/platform';
 import { space } from '../../ui/theme';
@@ -58,6 +59,7 @@ export default function BatchScreen() {
     updateBatch(batch.id, date);
     if (date.expiryDate) ensureNotificationPermission();
     setPanel(null);
+    Toast.show({ type: 'success', text1: 'Date saved' });
   };
 
   const move = (locationId: string, name: string) => {
@@ -66,7 +68,7 @@ export default function BatchScreen() {
     // ponytail: a Location is treated as a freezer if its name says so; add a flag on Location if that ever misfires.
     const freezer = /freez/i.test(name);
     setFreezerNote(freezer);
-    if (freezer) { setDate(current()); setPanel('date'); } else setPanel(null);
+    if (freezer) { setDate(current()); setPanel('date'); } else { setPanel(null); Toast.show({ type: 'success', text1: `Moved to ${name}` }); }
   };
 
   const current = (): DateChoice => ({ expiryDate: batch.expiryDate, noExpiry: batch.noExpiry, dateKind: batch.dateKind });
@@ -156,6 +158,7 @@ export default function BatchScreen() {
             const pence = Math.round(parseFloat(price.replace(',', '.')) * 100);
             updateBatch(batch.id, { pricePence: isFinite(pence) ? pence : null });
             setPanel(null);
+            Toast.show({ type: 'success', text1: 'Price saved' });
           }}
         />
       </Sheet>
