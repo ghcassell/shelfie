@@ -25,7 +25,9 @@ export default function Dialog({ visible, onDismiss, title, message, children, b
   const actions = buttons ?? [{ label: 'OK', variant: 'primary' as const, onPress: onDismiss }];
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss} statusBarTranslucent>
+    // Fade, not "none": Android edge-to-edge first lays the modal out minus the system bars, then
+    // resizes to full height, so centred content jumps down. The fade hides that first frame.
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss} statusBarTranslucent>
       <View style={styles.root}>
         {/* Plain View, not Pressable: avoids always-focusable tabIndex on web; Esc/back still dismiss. */}
         <View

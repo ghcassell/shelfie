@@ -4,7 +4,7 @@ import { useIsFocused } from 'expo-router';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Camera, type CameraRef, useCameraDevice, useCameraPermission, usePhotoOutput } from 'react-native-vision-camera';
-import { CodeScanner } from 'react-native-vision-camera-barcode-scanner';
+import { type TargetBarcodeFormat, useBarcodeScannerOutput } from 'react-native-vision-camera-barcode-scanner';
 import { processImageTextRecognition } from 'react-native-vision-camera-mlkit';
 import type { OcrLine } from '../../domain/receipt';
 import { Button, IconButton, ProductTile, s, Sheet } from '../../ui/components';
@@ -29,27 +29,36 @@ export function BarcodeCamera({ onScan }: { onScan: (barcode: string) => void })
   const focused = useIsFocused();
   const last = useRef('');
   const previous = useRef<string | undefined>(undefined);
+  // Not the library's <CodeScanner>: it throws while the camera list is still loading, which crashes a release build.
+  const device = useCameraDevice('back');
+  const output = useBarcodeScannerOutput({
+    barcodeFormats: BARCODE_FORMATS,
+    onBarcodeScanned: (codes) => {
+      const value = codes[0]?.rawValue;
+      // A blurry frame can be misread as a different, valid-looking number. Only a code read the same way twice running counts.
+      const steady = value === previous.current;
+      previous.current = value;
+      if (value && steady && value !== last.current) { last.current = value; onScan(value); }
+    },
+    onError: (e) => console.warn('Barcode scanner', e),
+  });
   return (
     <CameraGate>
       <View style={st.frame}>
-        <CodeScanner
-          style={StyleSheet.absoluteFill}
-          isActive={focused}
-          // ponytail: no UPC-E (rare in the UK, and half-seen EAN-13s misread as it). Add it, expanded to UPC-A, if US imports matter.
-          barcodeFormats={['ean-13', 'ean-8', 'upc-a', 'qr-code', 'data-matrix']}
-          onBarcodeScanned={(codes) => {
-            const value = codes[0]?.rawValue;
-            // A blurry frame can be misread as a different, valid-looking number. Only a code read the same way twice running counts.
-            const steady = value === previous.current;
-            previous.current = value;
-            if (value && steady && value !== last.current) { last.current = value; onScan(value); }
-          }}
-          onError={(e) => console.warn('Barcode scanner', e)}
-        />
+        {device && (
+          <Camera
+            style={StyleSheet.absoluteFill} device={device} isActive={focused} outputs={[output]}
+            onError={(e) => console.warn('Barcode scanner', e)}
+          />
+        )}
       </View>
     </CameraGate>
   );
 }
+
+// ponytail: no UPC-E (rare in the UK, and half-seen EAN-13s misread as it). Add it, expanded to UPC-A, if US imports matter.
+// A constant, so the scanner output is not rebuilt on every render.
+const BARCODE_FORMATS: TargetBarcodeFormat[] = ['ean-13', 'ean-8', 'upc-a', 'qr-code', 'data-matrix'];
 
 export interface OcrResult { text: string; lines: OcrLine[] }
 
