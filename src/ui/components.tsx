@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { type ComponentProps, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, type ComponentRef, createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated, Dimensions, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputProps, View, type ViewStyle,
+  Animated, Dimensions, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputProps, View, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatAmount, stepFor } from '../domain/amount';
@@ -151,6 +151,12 @@ export function WizardStep({ step, of, title, children, onBack, onNext, nextLabe
 }) {
   const insets = useSafeAreaInsets();
   const Body = scroll ? ScrollView : View;
+  // The bar is hidden while typing: riding on top of the keyboard it looked like the end of the form.
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    const subs = [Keyboard.addListener('keyboardDidShow', () => setTyping(true)), Keyboard.addListener('keyboardDidHide', () => setTyping(false))];
+    return () => subs.forEach((sub) => sub.remove());
+  }, []);
   return (
     <View style={s.screen}>
       <View style={[s.wizardTop, { paddingTop: insets.top + space.sm }]}>
@@ -159,14 +165,16 @@ export function WizardStep({ step, of, title, children, onBack, onNext, nextLabe
         <Text style={s.headerTitle} accessibilityRole="header">{title}</Text>
       </View>
       <Body style={{ flex: 1 }} {...(scroll ? { contentContainerStyle: s.wizardBody, keyboardShouldPersistTaps: 'handled' as const } : {})}>
-        {children}
+        <Form>{children}</Form>
       </Body>
-      <View style={[s.bottomBar, { paddingBottom: space.md }]}>
-        <Button label="Back" kind="secondary" onPress={onBack} />
-        <View style={{ flex: 1 }} />
-        {onSaveNext && <Button label="Save & scan next" kind="secondary" onPress={onSaveNext} disabled={nextDisabled} />}
-        {onNext && <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} />}
-      </View>
+      {!typing && (
+        <View style={[s.bottomBar, { paddingBottom: space.md }]}>
+          <Button label="Back" kind="secondary" onPress={onBack} />
+          <View style={{ flex: 1 }} />
+          {onSaveNext && <Button label="Save & scan next" kind="secondary" onPress={onSaveNext} disabled={nextDisabled} />}
+          {onNext && <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} />}
+        </View>
+      )}
     </View>
   );
 }
@@ -195,11 +203,41 @@ export function QuantityPicker({ value, onChange, unit, max }: { value: number; 
   );
 }
 
+type Input = ComponentRef<typeof TextInput>;
+const FormContext = createContext<Set<Input> | null>(null);
+
+/** Wrap a multi-field form: the keyboard's action key then moves to the Field below, and closes the keyboard on the last one. Adds no view. */
+export function Form({ children }: { children: ReactNode }) {
+  const [fields] = useState(() => new Set<Input>());
+  return <FormContext.Provider value={fields}>{children}</FormContext.Provider>;
+}
+
 export function Field({ label, style, ...input }: TextInputProps & { label: string }) {
+  const fields = useContext(FormContext);
+  const ref = useRef<Input>(null);
+  useEffect(() => {
+    const me = ref.current;
+    if (!fields || !me) return;
+    fields.add(me);
+    return () => { fields.delete(me); };
+  }, [fields]);
+
+  // "Below" is measured when the key is pressed, not tracked in mount order: Fields come and go as the form changes.
+  const focusNext = async () => {
+    const me = ref.current;
+    if (!fields || !me) return;
+    const tops = await Promise.all([...fields].map((f) => new Promise<[Input, number]>((done) => f.measureInWindow((_x, y) => done([f, y])))));
+    const mine = tops.find(([f]) => f === me)?.[1] ?? Infinity;
+    const next = tops.filter(([, y]) => y > mine).sort((a, b) => a[1] - b[1])[0]?.[0];
+    if (next) next.focus(); else me.blur();
+  };
+  // A Field with its own submit action (e.g. the typed barcode) keeps it.
+  const chain = fields && !input.onSubmitEditing ? { submitBehavior: 'submit' as const, onSubmitEditing: focusNext } : null;
+
   return (
     <View style={{ gap: space.xs }}>
       <Text style={s.label}>{label}</Text>
-      <TextInput accessibilityLabel={label} placeholderTextColor={color.inkMuted} style={[s.input, style]} {...input} />
+      <TextInput ref={ref} accessibilityLabel={label} placeholderTextColor={color.inkMuted} style={[s.input, style]} {...input} {...chain} />
     </View>
   );
 }
@@ -239,7 +277,8 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
       <Animated.View style={[s.scrim, { opacity: progress }]}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button" />
       </Animated.View>
-      <View style={s.sheetDock} pointerEvents="box-none">
+      {/* A Modal is its own window, so the root KeyboardAvoidingView doesn't reach in here. */}
+      <KeyboardAvoidingView behavior="padding" style={s.sheetDock} pointerEvents="box-none">
         <Animated.View style={[s.sheet, { paddingBottom: insets.bottom + space.lg, transform: [{ translateY }] }]}>
           <View
             {...pan.panHandlers} style={s.sheetGrab}
@@ -251,7 +290,7 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
           </View>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space.sm }}>{children}</ScrollView>
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
