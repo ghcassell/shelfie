@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatAmount, stepFor } from '../domain/amount';
+import { emojiFor } from '../domain/emoji';
 import type { BaseUnit, Urgency } from '../domain/types';
 import { color, font, radius, space, TOUCH, urgencyStyle } from './theme';
 
@@ -81,13 +82,16 @@ export function StatusPill({ state, text }: { state: Urgency; text: string | nul
   );
 }
 
-/** Product image from Open Food Facts (cached on disk), else a tint tile with the first letter. */
-export function ProductTile({ name, imageUrl, size = 44 }: { name: string; imageUrl: string | null; size?: number }) {
+/** The Product's photo (Open Food Facts or the user's own), else a tint tile with an emoji guessed from its name. */
+export function ProductTile({ name, category, imageUrl, size = 44 }: { name: string; category?: string | null; imageUrl: string | null; size?: number }) {
+  const [failed, setFailed] = useState<string | null>(null); // e.g. offline before the photo was ever cached
   const box = { width: size, height: size, borderRadius: radius.sm };
-  if (imageUrl) return <Image source={imageUrl} style={box} contentFit="cover" cachePolicy="disk" accessibilityIgnoresInvertColors />;
+  if (imageUrl && failed !== imageUrl) {
+    return <Image source={imageUrl} style={box} contentFit="cover" cachePolicy="disk" accessibilityIgnoresInvertColors onError={() => setFailed(imageUrl)} />;
+  }
   return (
     <View style={[box, s.tile]}>
-      <Text style={[s.tileLetter, { fontSize: size * 0.45 }]}>{name.trim().charAt(0).toUpperCase() || '?'}</Text>
+      <Text style={{ fontSize: size * 0.55 }}>{emojiFor(name, category)}</Text>
     </View>
   );
 }
@@ -276,7 +280,6 @@ export const s = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: 2, borderRadius: radius.full, alignSelf: 'flex-start' },
   pillText: { fontSize: font.xs, fontWeight: '600' },
   tile: { backgroundColor: color.tint, alignItems: 'center', justifyContent: 'center' },
-  tileLetter: { fontFamily: font.title, color: color.dark },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, paddingRight: space.screen, paddingLeft: space.screen - 4, minHeight: TOUCH, borderLeftWidth: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.line, backgroundColor: color.surface },
   rowTitle: { fontSize: font.md, fontWeight: '600', color: color.ink },
   rowSubtitle: { fontSize: font.sm, color: color.inkMuted, marginTop: 2 },

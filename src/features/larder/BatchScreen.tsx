@@ -75,7 +75,7 @@ export default function BatchScreen() {
       <ScreenHeader title={product.name} back />
       <ScrollView contentContainerStyle={s.body}>
         <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
-          <ProductTile name={product.name} imageUrl={product.imageUrl} size={72} />
+          <ProductTile name={product.name} category={product.category} imageUrl={product.imageUrl} size={72} />
           <View style={{ flex: 1, gap: space.xs }}>
             <Text style={s.text}>
               {formatAmount(remaining, unit)} left{batch.packCount > 1 ? ` (${packs} of ${batch.packCount} packs)` : ''}
