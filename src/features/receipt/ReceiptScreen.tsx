@@ -60,7 +60,9 @@ export default function ReceiptScreen() {
     setError('');
     try {
       // Downscaled before it leaves the phone; sent only on this explicit tap.
-      setLines(toLines(linesFromAi(await improveReceipt(await photoBase64(photo, 1000)), ignored)));
+      const found = linesFromAi(await improveReceipt(await photoBase64(photo, 1000)), ignored);
+      if (found.length === 0) setError('The AI found no priced lines in this photo. Is it a receipt?');
+      else setLines(toLines(found));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not improve this receipt.');
     } finally {
@@ -155,7 +157,7 @@ export default function ReceiptScreen() {
             {photo && (
               <>
                 <Button label={busy ? 'Asking…' : 'Improve with AI'} icon="auto-fix" kind="secondary" onPress={improve} disabled={busy} />
-                <Text style={s.muted}>Sends this receipt photo to Claude to read it better. Needs a connection.</Text>
+                <Text style={s.muted}>Sends this receipt photo to Google Gemini to read it better. Needs a connection.</Text>
               </>
             )}
           </ScrollView>

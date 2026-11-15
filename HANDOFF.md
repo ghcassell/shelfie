@@ -84,16 +84,16 @@ Leave out whatever is not done yet; the session will work with what it has.
 
 ### 7. Later: optional "Improve with AI" for receipts
 
-Needs the Supabase CLI and an Anthropic API key:
+Needs the Supabase CLI (`npx supabase ...` works) and a free Gemini API key from aistudio.google.com:
 
 ```sh
 supabase login
 supabase link --project-ref <your project ref>
-supabase secrets set ANTHROPIC_API_KEY=<key>
+supabase secrets set GEMINI_API_KEY=<key>
 supabase functions deploy receipt-ai
 ```
 
-Then set a hard monthly spend limit in the Anthropic Console. Skip this and the app still works; only the "Improve with AI" button fails.
+Leave billing off the key so it stays on the free tier (Google may use free-tier inputs to improve its products). Skip this and the app still works; only the "Improve with AI" button fails.
 
 ### 8. Later: household tasks
 

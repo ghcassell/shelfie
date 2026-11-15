@@ -27,7 +27,7 @@ Dependencies install with `legacy-peer-deps` (set in `.npmrc`) because `react-na
 1. **Supabase project** (Free plan). In the SQL editor run `supabase/migrations/0000_init.sql`, or `supabase db push` with the CLI.
 2. **Email code sign-in.** Authentication > Email Templates > Magic Link: put `{{ .Token }}` in the body so the email carries a 6-digit code rather than only a link. The built-in email sender is heavily rate-limited (a few emails an hour); fine for two people.
 3. **App env.** Copy `.env.example` to `.env` and fill in the project URL and anon key.
-4. **Receipt AI (optional).** `supabase secrets set ANTHROPIC_API_KEY=...` then `supabase functions deploy receipt-ai`. Set a hard monthly spend limit in the Anthropic Console. The key is never in the app or this repo.
+4. **Receipt AI (optional).** `supabase secrets set GEMINI_API_KEY=...` (free-tier key from aistudio.google.com, no billing attached) then `supabase functions deploy receipt-ai`. The key is never in the app or this repo.
 5. **Types (optional).** `supabase gen types typescript --project-id <id> > src/sync/database.types.ts`.
 6. **Check RLS** once both people have joined: follow `supabase/rls-check.sql`.
 

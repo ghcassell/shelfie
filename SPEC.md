@@ -62,7 +62,7 @@ Tabs: **Larder**, **Shopping**, **Needs attention** (badge). Overflow menu: **Se
 
 **Shopping list:** one shared synced list, offline-capable. Entry: name, optional Product link, optional free-text quantity, added by (Member or "auto"). Triggers: manual; auto when a Product's total stock crosses (above to at-or-below) its threshold (total = unfinished Batches in base unit, excluding Expired, including Past best); prompt "Add to shopping list?" when the last Batch of a Product with no threshold finishes. Never duplicates an existing entry. Tick = in basket (stays). Adding a Batch of a linked Product removes all its entries; "Clear ticked". Share unticked entries as plain text via the share sheet. Empty: "Nothing to buy."
 
-**Receipt scanning:** capture photo, on-device ML Kit OCR + regex (sends nothing). Optional per-receipt "Improve with AI" (needs connection): downscaled photo to Claude Haiku 5.5 via the Edge Function holding the key (Supabase secret), `max_tokens` capped, hard monthly spend cap in the Anthropic Console. Lines fuzzy-match the Household's own Products only (never OFF), confirmed matches saved as Receipt aliases; unmatched lines create a Product (base unit guessed from size in the name, else count). One-screen checklist (tick, editable name, changeable match, quantity, price), all ticked except an ignore list (carrier bag, discount, total, loyalty, ...). "Add ticked" creates Batches with no date (Needs a date), price recorded; photo deleted, no receipt record. Parser ships with a corpus of about 10 real receipts from the household's usual shops (user to collect).
+**Receipt scanning:** capture photo, on-device ML Kit OCR + regex (sends nothing). Optional per-receipt "Improve with AI" (needs connection): downscaled photo to Gemini Flash-Lite (free tier) via the Edge Function holding the key (Supabase secret), output tokens capped, no billing on the key. Lines fuzzy-match the Household's own Products only (never OFF), confirmed matches saved as Receipt aliases; unmatched lines create a Product (base unit guessed from size in the name, else count). One-screen checklist (tick, editable name, changeable match, quantity, price), all ticked except an ignore list (carrier bag, discount, total, loyalty, ...). "Add ticked" creates Batches with no date (Needs a date), price recorded; photo deleted, no receipt record. Parser ships with a corpus of about 10 real receipts from the household's usual shops (user to collect).
 
 **Batch add ("Add several"):** the normal wizard with "Save & scan next"; each Batch saves immediately, no draft. Location and Date kind carry over ("Adding to: <Location>" chip); quantity resets to 1; date never carries. Unknown barcode: name-only quick create (count), keeps barcode; brand and size completed later on the Product screen (the emoji tile stays until a photo is added there). Date step opens in the date-scanning camera. Same barcode and date as the last saved Batch bumps its pack count. "Fill in dates" mode walks Batches needing a date ("Next"; scanning a pack barcode jumps to its Batch). Summary on exit when 2 or more added: "Added N Batches · M need a date · K new Products with no details" + button to Needs attention.
 
@@ -88,7 +88,7 @@ Light only (`userInterfaceStyle: "light"`). Tokens in `src/ui/theme.ts`: primary
 
 ## 8. Cost
 
-Zero expected. Optional AI receipt improvement about $0.005 a month (estimate), capped in the Anthropic Console.
+Zero expected. Optional AI receipt improvement uses the Gemini free tier (no billing on the key).
 
 ## 9. Known open items
 

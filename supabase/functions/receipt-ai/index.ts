@@ -1,8 +1,8 @@
-// "Improve with AI": forwards one downscaled receipt photo to Claude Haiku 5.5.
-// The Anthropic key lives only here, as a Supabase secret:
-//   supabase secrets set ANTHROPIC_API_KEY=...
+// "Improve with AI": forwards one downscaled receipt photo to Gemini Flash-Lite.
+// The Gemini key (free tier, from aistudio.google.com) lives only here, as a Supabase secret:
+//   supabase secrets set GEMINI_API_KEY=...
 // Deployed with JWT verification on (the default), so only signed-in Members can call it.
-// The hard monthly spend cap is set in the Anthropic Console.
+// Free tier: no billing on the key means no cost; Google may use free-tier inputs to improve its products.
 
 const MAX_IMAGE_BASE64 = 2_000_000; // ~1.5 MB photo; the app downscales well below this
 
@@ -19,32 +19,34 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Expected { image: base64 JPEG }' }, { status: 400 });
   }
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
     method: 'POST',
     headers: {
-      'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') ?? '',
-      'anthropic-version': '2026-10-21',
+      'x-goog-api-key': Deno.env.get('GEMINI_API_KEY') ?? '',
+      'Api-Revision': '2026-05-20',
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-5-5',
-      max_tokens: 1500, // capped; thinking counts toward it, so low effort keeps the JSON from being cut off
-      output_config: { effort: 'low' },
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } },
-          { type: 'text', text: PROMPT },
-        ],
-      }],
+      model: 'gemini-3.5-flash-lite',
+      store: false, // the receipt is not kept for later retrieval
+      generation_config: { max_output_tokens: 4000, thinking_level: 'minimal' },
+      response_format: { type: 'text', mime_type: 'application/json' },
+      input: [
+        { type: 'text', text: PROMPT },
+        { type: 'image', data: image, mime_type: 'image/jpeg' },
+      ],
     }),
   });
   if (!res.ok) {
-    console.error('Anthropic error', res.status, await res.text());
+    console.error('Gemini error', res.status, await res.text());
     return Response.json({ error: 'AI service unavailable' }, { status: 502 });
   }
   const body = await res.json();
-  const text: string = body.content?.find((b: { type: string }) => b.type === 'text')?.text ?? '';
+  const text: string = (body.steps ?? [])
+    .filter((st: { type: string }) => st.type === 'model_output')
+    .flatMap((st: { content?: { type: string; text?: string }[] }) => st.content ?? [])
+    .map((c: { text?: string }) => c.text ?? '')
+    .join('');
   try {
     return Response.json(JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)));
   } catch {
