@@ -1,9 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { File } from 'expo-file-system';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLarder } from '../../db/queries';
 import { addBatch, addLocation, addProduct, saveAlias } from '../../db/repositories';
 import { db } from '../../db/client';
@@ -11,9 +9,9 @@ import { receiptAliases } from '../../db/schema';
 import { aliasKey, guessUnit, linesFromAi, matchProduct, parseReceipt, type ReceiptLine, rowsFromOcr } from '../../domain/receipt';
 import { improveReceipt } from '../../sync';
 import { BottomBar, Button, Chip, Field, IconButton, ListRow, s, ScreenHeader, Sheet } from '../../ui/components';
+import { deletePhoto, photoBase64 } from '../../ui/platform';
 import { color, space, TOUCH } from '../../ui/theme';
 import { TextCamera } from '../add/camera';
-import { deletePhoto } from '../add/DateEditor';
 import { addIgnored, getIgnored, removeIgnored } from './ignoreList';
 
 interface Line extends ReceiptLine { key: number; original: string; productId: string | null; price: string }
@@ -62,11 +60,7 @@ export default function ReceiptScreen() {
     setError('');
     try {
       // Downscaled before it leaves the phone; sent only on this explicit tap.
-      const small = await manipulateAsync(photo.startsWith('file://') ? photo : `file://${photo}`, [{ resize: { width: 1000 } }], { compress: 0.7, format: SaveFormat.JPEG });
-      const file = new File(small.uri);
-      const base64 = await file.base64();
-      file.delete();
-      setLines(toLines(linesFromAi(await improveReceipt(base64), ignored)));
+      setLines(toLines(linesFromAi(await improveReceipt(await photoBase64(photo, 1000)), ignored)));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not improve this receipt.');
     } finally {
@@ -105,7 +99,11 @@ export default function ReceiptScreen() {
       <ScreenHeader title="Scan a receipt" back />
       {!lines ? (
         <View style={s.body}>
-          <Text style={s.muted}>Lay the receipt flat and fit it in the frame. It is read on this phone; nothing is sent anywhere.</Text>
+          <Text style={s.muted}>
+            {Platform.OS === 'web'
+              ? 'Upload a photo of the receipt. Nothing is sent anywhere until you choose "Improve with AI" on the next step, which reads it.'
+              : 'Lay the receipt flat and fit it in the frame. It is read on this phone; nothing is sent anywhere.'}
+          </Text>
           <TextCamera
             tall label="Read receipt"
             onText={({ lines: ocr }, path) => { setPhoto(path); setLines(toLines(parseReceipt(rowsFromOcr(ocr), ignored))); }}

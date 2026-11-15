@@ -21,11 +21,19 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "headers": {
+            "Cross-Origin-Embedder-Policy": "credentialless",
+            "Cross-Origin-Opener-Policy": "same-origin"
+          }
+        }
+      ],
       "expo-sqlite",
       "expo-sharing",
       "expo-image",
-      "expo-notifications",
+      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#1D9E75" }],
       "@react-native-community/datetimepicker",
       [
         "react-native-vision-camera-mlkit",

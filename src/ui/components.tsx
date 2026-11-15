@@ -325,10 +325,10 @@ export const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.surface },
   body: { padding: space.screen, gap: space.lg },
   header: { gap: space.sm, paddingBottom: space.sm, backgroundColor: color.surface, borderBottomWidth: 1, borderBottomColor: color.brand },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.screen, minHeight: TOUCH }, // as tall as an icon button, so titles line up with or without one
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.screen, minHeight: TOUCH, paddingBottom: 3 }, // as tall as an icon button, so titles line up with or without one
   headerLogo: { width: TOUCH, height: TOUCH, borderRadius: radius.md },
-  headerLogoShadow: { borderRadius: radius.md, boxShadow: '0 2px 6px #0c6b58' },
-  headerTitle: { flex: 1, fontFamily: font.title, fontSize: font.xl, color: color.dark, fontWeight: '900' },
+  headerLogoShadow: { borderRadius: radius.md, boxShadow: '0 1px 4px #0c6b58' },
+  headerTitle: { flex: 1, fontFamily: font.title, fontSize: font.xl, color: color.dark, fontWeight: '900', marginBottom: 1 },
   iconButton: { minWidth: TOUCH, minHeight: TOUCH, alignItems: 'center', justifyContent: 'center' },
   button: { minHeight: TOUCH, paddingHorizontal: space.lg, paddingVertical: space.md, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
   buttonPrimary: { backgroundColor: color.primary },

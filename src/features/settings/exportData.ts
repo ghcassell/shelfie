@@ -1,7 +1,4 @@
 import { isNull } from 'drizzle-orm';
-import * as DocumentPicker from 'expo-document-picker';
-import { File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { strToU8, zipSync } from 'fflate';
 import { db } from '../../db/client';
 import { isEmptyForRestore, loadRows, readBackupData, restoreBackup } from '../../db/repositories';
@@ -11,14 +8,7 @@ import { pillText } from '../../domain/expiry';
 import { buildBackup, checkBackup, toCsv } from '../../domain/export';
 import { WASTE_REASONS } from '../../domain/types';
 import { wasteCost } from '../../domain/waste';
-
-async function shareFile(name: string, content: string | Uint8Array, mimeType: string) {
-  const file = new File(Paths.cache, name);
-  if (file.exists) file.delete();
-  file.create();
-  await file.write(content);
-  await Sharing.shareAsync(file.uri, { mimeType });
-}
+import { pickJsonText, shareFile } from '../../ui/platform';
 
 /** JSON backup, for restore. */
 export const exportJson = () =>
@@ -61,9 +51,9 @@ export function exportCsv() {
 /** Restore a JSON backup. Returns one plain error, or null on success (or if the picker was cancelled). */
 export async function restoreFromFile(): Promise<string | null> {
   if (!isEmptyForRestore()) return 'Restore only works into an empty Household: this one already has Products, Batches or history.';
-  const picked = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
-  if (picked.canceled) return null;
-  const checked = checkBackup(await new File(picked.assets[0].uri).text());
+  const text = await pickJsonText();
+  if (text == null) return null;
+  const checked = checkBackup(text);
   if (!checked.ok) return checked.error;
   try {
     restoreBackup(checked.data);

@@ -1,13 +1,13 @@
-import Storage from 'expo-sqlite/kv-store';
 import { aliasKey } from '../../domain/receipt';
+import { kv } from '../../ui/platform';
 
 // ponytail: per-phone, never synced. Move to a synced table if both phones need the same list.
 const KEY = 'receiptIgnore';
 
 /** The user's own ignore phrases, on top of the built-in list. Stored as aliasKey. */
-export const getIgnored = (): string[] => JSON.parse(Storage.getItemSync(KEY) ?? '[]');
+export const getIgnored = (): string[] => JSON.parse(kv.getItemSync(KEY) ?? '[]');
 
-const save = (list: string[]) => { Storage.setItemSync(KEY, JSON.stringify(list)); return list; };
+const save = (list: string[]) => { kv.setItemSync(KEY, JSON.stringify(list)); return list; };
 
 export function addIgnored(phrase: string): string[] {
   const key = aliasKey(phrase);

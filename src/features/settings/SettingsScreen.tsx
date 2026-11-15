@@ -1,14 +1,14 @@
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Linking, ScrollView, Switch, Text, View } from 'react-native';
+import { Linking, Platform, ScrollView, Switch, Text, View } from 'react-native';
 import { db } from '../../db/client';
 import { useLarder } from '../../db/queries';
 import { addLocation, deleteLocation, renameLocation, setWarningDays } from '../../db/repositories';
 import { households, members } from '../../db/schema';
 import { sync, useSyncStatus } from '../../sync';
 import { Button, Field, IconButton, ListRow, s, ScreenHeader, Section, Sheet } from '../../ui/components';
+import { alert, pickDateTime } from '../../ui/platform';
 import { color, space } from '../../ui/theme';
 import { getDigestSettings, setDigestSettings } from './digest';
 import { addIgnored, getIgnored, removeIgnored } from '../receipt/ignoreList';
@@ -45,7 +45,7 @@ export default function SettingsScreen() {
               right={
                 <IconButton
                   icon="trash-can-outline" label={`Delete ${l.name}`} tint={color.inkMuted}
-                  onPress={() => { if (!deleteLocation(l.id)) Alert.alert('Still in use', `Move or finish what is in ${l.name} first.`); }}
+                  onPress={() => { if (!deleteLocation(l.id)) alert('Still in use', `Move or finish what is in ${l.name} first.`); }}
                 />
               }
             />
@@ -63,19 +63,16 @@ export default function SettingsScreen() {
           <Text style={s.muted}>Change it for one Product on its Product screen.</Text>
         </Section>
 
-        <Section title="Daily digest (this phone)">
+        {Platform.OS !== 'web' && <Section title="Daily digest (this phone)">
           <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 48 }}>
             <Text style={[s.text, { flex: 1 }]}>One notification a day</Text>
             <Switch value={digest.on} onValueChange={(on) => changeDigest({ on })} accessibilityLabel="Daily digest" trackColor={{ true: color.brand }} />
           </View>
           <ListRow
             title="Time" subtitle={`${pad(digest.hour)}:${pad(digest.minute)} (roughly; Android decides the exact minute)`}
-            onPress={() => DateTimePickerAndroid.open({
-              value: new Date(2026, 0, 1, digest.hour, digest.minute), mode: 'time', is24Hour: true,
-              onValueChange: (_e, d) => changeDigest({ hour: d.getHours(), minute: d.getMinutes() }),
-            })}
+            onPress={() => pickDateTime('time', new Date(2026, 0, 1, digest.hour, digest.minute), (d) => changeDigest({ hour: d.getHours(), minute: d.getMinutes() }))}
           />
-        </Section>
+        </Section>}
 
         <Section title="Receipt ignore list (this phone)">
           <Text style={s.muted}>Receipt lines containing these words are left unticked. Totals, bags, discounts and payment lines are always ignored.</Text>

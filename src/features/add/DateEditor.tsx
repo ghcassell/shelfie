@@ -1,20 +1,15 @@
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { File } from 'expo-file-system';
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { parseExpiryDates, type ParsedDate } from '../../domain/dateParser';
 import { addDays, addMonths, formatDay, toDay } from '../../domain/dates';
 import type { DateKind, Day } from '../../domain/types';
 import { Button, Chip, s } from '../../ui/components';
+import { deletePhoto, pickDateTime } from '../../ui/platform';
 import { color, radius, space } from '../../ui/theme';
 import { TextCamera } from './camera';
 
 export interface DateChoice { expiryDate: Day | null; noExpiry: boolean; dateKind: DateKind }
 export const NEEDS_DATE: DateChoice = { expiryDate: null, noExpiry: false, dateKind: 'best_before' };
-
-export const deletePhoto = (path: string) => {
-  try { new File(path.startsWith('file://') ? path : `file://${path}`).delete(); } catch { /* already gone */ }
-};
 
 /**
  * The date step: scan date (never saved unconfirmed), quick options, picker, no expiry, skip for now.
@@ -22,16 +17,15 @@ export const deletePhoto = (path: string) => {
  */
 export function DateEditor({ value, onChange, startInCamera }: { value: DateChoice; onChange: (v: DateChoice) => void; startInCamera?: boolean }) {
   const today = toDay();
-  const [camera, setCamera] = useState(!!startInCamera);
+  const [camera, setCamera] = useState(!!startInCamera && CAN_SCAN);
   const [read, setRead] = useState<ParsedDate[] | null>(null);
   const [seen, setSeen] = useState('');
   const setDate = (expiryDate: Day, dateKind = value.dateKind) => onChange({ expiryDate, noExpiry: false, dateKind });
   // Opens on the given date (a scanned guess to correct), else the current one, else today.
-  const pickDate = (from = value.expiryDate, dateKind = value.dateKind) => DateTimePickerAndroid.open({
-    value: from ? new Date(`${from}T12:00:00`) : new Date(),
-    mode: 'date',
-    onValueChange: (_e, d) => { setDate(toDay(d), dateKind); setRead(null); setCamera(false); },
-  });
+  const pickDate = (from = value.expiryDate, dateKind = value.dateKind) => pickDateTime(
+    'date', from ? new Date(`${from}T12:00:00`) : new Date(),
+    (d) => { setDate(toDay(d), dateKind); setRead(null); setCamera(false); },
+  );
 
   const quick: [string, Day][] = [
     ['+3 days', addDays(today, 3)], ['+1 week', addDays(today, 7)], ['+1 month', addMonths(today, 1)], ['+1 year', addMonths(today, 12)],
@@ -52,7 +46,7 @@ export function DateEditor({ value, onChange, startInCamera }: { value: DateChoi
           label="Read date"
           onText={({ text }, path) => { deletePhoto(path); setSeen(text.replace(/\s+/g, ' ').trim().slice(0, 120)); setRead(parseExpiryDates(text, today)); }}
         />
-      ) : (
+      ) : CAN_SCAN && (
         <Button label="Scan date" icon="camera" kind="secondary" onPress={() => setCamera(true)} />
       )}
 
@@ -94,3 +88,5 @@ export function DateEditor({ value, onChange, startInCamera }: { value: DateChoi
     </View>
   );
 }
+
+const CAN_SCAN = Platform.OS !== 'web'; // nothing reads a date off a photo in the browser

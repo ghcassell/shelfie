@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useLarder } from '../../db/queries';
 import { addUsage, deleteBatch, openBatch, updateBatch, updateProduct } from '../../db/repositories';
 import { formatAmount, packsRemaining } from '../../domain/amount';
@@ -9,6 +9,7 @@ import { pillText } from '../../domain/expiry';
 import { WASTE_REASONS, type WasteReason } from '../../domain/types';
 import { formatPence } from '../../domain/waste';
 import { Button, Chip, Field, ListRow, ProductTile, QuantityPicker, s, ScreenHeader, Section, Sheet, StatusPill } from '../../ui/components';
+import { alert } from '../../ui/platform';
 import { space } from '../../ui/theme';
 import { type DateChoice, DateEditor } from '../add/DateEditor';
 import { ensureNotificationPermission } from '../settings/digest';
@@ -117,7 +118,7 @@ export default function BatchScreen() {
 
         <Button
           label="Delete (added by mistake)" kind="destructive"
-          onPress={() => Alert.alert('Delete this Batch?', 'Only for something added by mistake. To record it as eaten or thrown away, use the buttons above.', [
+          onPress={() => alert('Delete this Batch?', 'Only for something added by mistake. To record it as eaten or thrown away, use the buttons above.', [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Delete', style: 'destructive', onPress: () => { deleteBatch(batch.id); router.back(); } },
           ])}

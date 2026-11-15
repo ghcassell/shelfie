@@ -1,5 +1,7 @@
 import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import Storage from 'expo-sqlite/kv-store';
+import { useEffect } from 'react';
 import { loadRows } from '../../db/repositories';
 import { addDays, toDay } from '../../domain/dates';
 import { digestText } from '../../domain/expiry';
@@ -20,6 +22,15 @@ Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
 });
 
+/** Tapping the Daily digest opens Needs attention. */
+export function useDigestTap(signedIn: boolean) {
+  const tapped = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    const url = tapped?.notification.request.content.data?.url;
+    if (signedIn && typeof url === 'string') router.push('/attention');
+  }, [tapped, signedIn]);
+}
+
 /** Asked when the first dated Batch is saved. If denied, the Needs attention badge stands in. */
 export async function ensureNotificationPermission() {
   await Notifications.setNotificationChannelAsync('digest', { name: 'Daily digest', importance: Notifications.AndroidImportance.DEFAULT });
@@ -32,7 +43,10 @@ export async function ensureNotificationPermission() {
  * After every app open and sync: cancel, then schedule the next inexact daily digest from local data.
  * It repeats daily with this text until the app is next opened (stale if unopened for days; accepted).
  */
-export async function rescheduleDigest() {
+export const rescheduleDigest = () => (queue = queue.then(reschedule)); // one at a time: overlapping runs double-schedule
+let queue = Promise.resolve();
+
+async function reschedule() {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
     const { on, hour, minute } = getDigestSettings();
