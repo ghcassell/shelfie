@@ -10,7 +10,7 @@ import { db } from '../../db/client';
 import { receiptAliases } from '../../db/schema';
 import { guessUnit, linesFromAi, matchProduct, parseReceipt, type ReceiptLine, rowsFromOcr } from '../../domain/receipt';
 import { improveReceipt } from '../../sync';
-import { Button, Chip, Field, IconButton, ListRow, s, ScreenHeader, Sheet } from '../../ui/components';
+import { BottomBar, Button, Chip, Field, IconButton, ListRow, s, ScreenHeader, Sheet } from '../../ui/components';
 import { color, space, TOUCH } from '../../ui/theme';
 import { TextCamera } from '../add/camera';
 import { deletePhoto } from '../add/DateEditor';
@@ -35,10 +35,14 @@ export default function ReceiptScreen() {
 
   const toLines = (parsed: ReceiptLine[]): Line[] => {
     const aliases = db.select().from(receiptAliases).all().filter((a) => !a.deletedAt);
-    return parsed.map((l, key) => ({
-      ...l, key, original: l.name, productId: matchProduct(l.name, products, aliases),
-      price: l.pricePence == null ? '' : (l.pricePence / 100).toFixed(2),
-    }));
+    return parsed.map((l, key) => {
+      const productId = matchProduct(l.name, products, aliases);
+      return {
+        ...l, key, original: l.name, productId,
+        name: products.find((p) => p.id === productId)?.name ?? l.name, // show the linked Product, not the shop's abbreviation
+        price: l.pricePence == null ? '' : (l.pricePence / 100).toFixed(2),
+      };
+    });
   };
   const patch = (key: number, change: Partial<Line>) => setLines((ls) => ls!.map((l) => (l.key === key ? { ...l, ...change } : l)));
 
@@ -143,18 +147,18 @@ export default function ReceiptScreen() {
               </>
             )}
           </ScrollView>
-          <View style={[s.bottomBar, { paddingBottom: space.lg }]}>
+          <BottomBar paddingBottom={space.lg}>
             <Button label="Retake" kind="secondary" onPress={() => { if (photo) deletePhoto(photo); setPhoto(null); setLines(null); }} />
             <View style={{ flex: 1 }} />
             <Button label={`Add ticked (${lines.filter((l) => l.ticked).length})`} onPress={addTicked} disabled={!locationId || !lines.some((l) => l.ticked)} />
-          </View>
+          </BottomBar>
         </>
       )}
 
       <Sheet visible={choosing != null} onClose={() => setChoosing(null)} title={choosingLine ? `"${choosingLine.original}" is` : ''}>
-        <ListRow title="A new Product" onPress={() => { patch(choosing!, { productId: null }); setChoosing(null); }} />
+        <ListRow title="A new Product" onPress={() => { patch(choosing!, choosingLine?.productId ? { productId: null, name: choosingLine.original } : { productId: null }); setChoosing(null); }} />
         {products.map((p) => (
-          <ListRow key={p.id} title={p.name} subtitle={[p.brand, p.size].filter(Boolean).join(' · ')} onPress={() => { patch(choosing!, { productId: p.id }); setChoosing(null); }} />
+          <ListRow key={p.id} title={p.name} subtitle={[p.brand, p.size].filter(Boolean).join(' · ')} onPress={() => { patch(choosing!, { productId: p.id, name: p.name }); setChoosing(null); }} />
         ))}
       </Sheet>
 

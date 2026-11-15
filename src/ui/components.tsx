@@ -151,12 +151,6 @@ export function WizardStep({ step, of, title, children, onBack, onNext, nextLabe
 }) {
   const insets = useSafeAreaInsets();
   const Body = scroll ? ScrollView : View;
-  // The bar is hidden while typing: riding on top of the keyboard it looked like the end of the form.
-  const [typing, setTyping] = useState(false);
-  useEffect(() => {
-    const subs = [Keyboard.addListener('keyboardDidShow', () => setTyping(true)), Keyboard.addListener('keyboardDidHide', () => setTyping(false))];
-    return () => subs.forEach((sub) => sub.remove());
-  }, []);
   return (
     <View style={s.screen}>
       <View style={[s.wizardTop, { paddingTop: insets.top + space.sm }]}>
@@ -167,16 +161,24 @@ export function WizardStep({ step, of, title, children, onBack, onNext, nextLabe
       <Body style={{ flex: 1 }} {...(scroll ? { contentContainerStyle: s.wizardBody, keyboardShouldPersistTaps: 'handled' as const } : {})}>
         <Form>{children}</Form>
       </Body>
-      {!typing && (
-        <View style={[s.bottomBar, { paddingBottom: space.md }]}>
-          <Button label="Back" kind="secondary" onPress={onBack} />
-          <View style={{ flex: 1 }} />
-          {onSaveNext && <Button label="Save & scan next" kind="secondary" onPress={onSaveNext} disabled={nextDisabled} />}
-          {onNext && <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} />}
-        </View>
-      )}
+      <BottomBar>
+        <Button label="Back" kind="secondary" onPress={onBack} />
+        <View style={{ flex: 1 }} />
+        {onSaveNext && <Button label="Save & scan next" kind="secondary" onPress={onSaveNext} disabled={nextDisabled} />}
+        {onNext && <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} />}
+      </BottomBar>
     </View>
   );
+}
+
+/** A screen's fixed bottom button bar. Hidden while typing: riding on top of the keyboard it looked like the end of the form. */
+export function BottomBar({ children, paddingBottom = space.md }: { children: ReactNode; paddingBottom?: number }) {
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    const subs = [Keyboard.addListener('keyboardDidShow', () => setTyping(true)), Keyboard.addListener('keyboardDidHide', () => setTyping(false))];
+    return () => subs.forEach((sub) => sub.remove());
+  }, []);
+  return typing ? null : <View style={[s.bottomBar, { paddingBottom }]}>{children}</View>;
 }
 
 /** Numeric field in the Base unit, -/+ (step 1 for count, 50 for g/ml), quick chips quarter / half / All. */

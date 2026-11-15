@@ -22,6 +22,7 @@ export function BottomTabs({ attentionCount }: { attentionCount: number }) {
         <Tabs
             screenOptions={{
                 headerShown: false,
+                tabBarHideOnKeyboard: true, // otherwise it rides on top of the keyboard (Larder search, Shopping add)
                 tabBarActiveTintColor: color.primary,
                 tabBarInactiveTintColor: color.inkMuted,
                 tabBarLabelStyle: { fontSize: font.xs },
