@@ -27,7 +27,7 @@ export function ScreenHeader({ title, back, right, menu }: {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   return (
-    <View style={[s.header, { paddingTop: insets.top + space.sm }]}>
+    <View style={[s.header, { paddingTop: insets.top + space.sm, borderBottomWidth: 0 }]}>
       {back && <IconButton icon="arrow-left" label="Back" onPress={() => router.back()} />}
       <Text style={s.headerTitle} accessibilityRole="header" numberOfLines={2}>{title}</Text>
       {right}
@@ -281,7 +281,7 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
       <KeyboardAvoidingView behavior="padding" style={s.sheetDock} pointerEvents="box-none">
         <Animated.View style={[s.sheet, { paddingBottom: insets.bottom + space.lg, transform: [{ translateY }] }]}>
           <View
-            {...pan.panHandlers} style={s.sheetGrab}
+            {...pan.panHandlers} style={[s.sheetGrab, !title && { minHeight: 0 }]}
             accessible accessibilityRole="button" accessibilityLabel="Close"
             accessibilityActions={[{ name: 'activate' }]} onAccessibilityAction={onClose}
           >
@@ -305,8 +305,8 @@ export const Section = ({ title, children }: { title: string; children: ReactNod
 export const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.surface },
   body: { padding: space.screen, gap: space.lg },
-  header: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.screen, paddingBottom: space.sm, backgroundColor: color.surface },
-  headerTitle: { flex: 1, fontFamily: font.title, fontSize: font.xl, color: color.dark },
+  header: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.screen, paddingBottom: space.sm, backgroundColor: color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.brand },
+  headerTitle: { flex: 1, fontFamily: font.title, fontSize: font.xl, color: color.dark, fontWeight: '900' },
   iconButton: { minWidth: TOUCH, minHeight: TOUCH, alignItems: 'center', justifyContent: 'center' },
   button: { minHeight: TOUCH, paddingHorizontal: space.lg, paddingVertical: space.md, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
   buttonPrimary: { backgroundColor: color.primary },
@@ -332,7 +332,7 @@ export const s = StyleSheet.create({
   wizardBody: { padding: space.screen, gap: space.lg },
   progressTrack: { height: 4, borderRadius: radius.full, backgroundColor: color.line },
   progressFill: { height: 4, borderRadius: radius.full, backgroundColor: color.brand },
-  bottomBar: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingHorizontal: space.screen, paddingTop: space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.line, backgroundColor: color.surface },
+  bottomBar: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingHorizontal: space.screen, paddingTop: space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.primary, backgroundColor: color.surface },
   qtyRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   qtyInput: { flex: 1, minHeight: TOUCH, borderWidth: 1, borderColor: color.line, borderRadius: radius.sm, paddingHorizontal: space.md, fontSize: font.lg, color: color.ink, textAlign: 'center' },
   qtyUnit: { fontSize: font.md, color: color.inkMuted },
@@ -344,7 +344,7 @@ export const s = StyleSheet.create({
   sheetGrab: { paddingTop: space.sm, paddingBottom: space.xs, gap: space.md, minHeight: TOUCH },
   sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: radius.full, backgroundColor: color.line },
   sheetTitle: { fontFamily: font.title, fontSize: font.lg, color: color.dark },
-  sectionTitle: { fontSize: font.sm, fontWeight: '600', color: color.inkMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: font.sm, fontWeight: '600', color: color.dark, textTransform: 'uppercase', letterSpacing: 0.5 },
   text: { fontSize: font.md, color: color.ink },
   muted: { fontSize: font.sm, color: color.inkMuted },
   error: { fontSize: font.sm, color: color.red },

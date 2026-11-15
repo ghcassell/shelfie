@@ -3,9 +3,9 @@ import type { Urgency } from '../domain/types';
 export const color = {
   primary: '#0E7C5A', // filled buttons, selected chip, FAB (AA with white text)
   brand: '#1D9E75', // accents and large icons only
-  dark: '#085041', // titles
+  dark: '#0c6b58', // titles
   tint: '#E1F5EE',
-  ink: '#16302a',
+  ink: '#1d4038',
   inkMuted: '#5d7068',
   line: '#dfe8e5',
   surface: '#fff',

@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { IconName } from "./components";
 import { color, font } from "./theme";
 
@@ -15,6 +16,8 @@ const icon =
 
 /** Larder, Shopping, Needs attention (with badge). Settings and Waste report live in the Larder's overflow menu. */
 export function BottomTabs({ attentionCount }: { attentionCount: number }) {
+    const insets = useSafeAreaInsets();
+    const pad = 4; // extra vertical padding on top of the default 49dp bar
     return (
         <Tabs
             screenOptions={{
@@ -22,7 +25,12 @@ export function BottomTabs({ attentionCount }: { attentionCount: number }) {
                 tabBarActiveTintColor: color.primary,
                 tabBarInactiveTintColor: color.inkMuted,
                 tabBarLabelStyle: { fontSize: font.xs },
-                tabBarStyle: { borderTopColor: color.line },
+                tabBarStyle: {
+                    borderTopColor: color.brand,
+                    height: 49 + pad * 2 + insets.bottom,
+                    paddingTop: pad,
+                    paddingBottom: insets.bottom + pad,
+                },
             }}
         >
             <Tabs.Screen
