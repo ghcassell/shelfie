@@ -141,9 +141,9 @@ export default function ReceiptScreen() {
                     <Chip icon={product ? 'link-variant' : 'plus'} label={product ? product.name : 'New Product'} onPress={() => setChoosing(l.key)} />
                     {/* One block, so the stepper never wraps apart. */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                      <IconButton icon="minus-circle-outline" label="One fewer" tint={color.primary} size={40} disabled={l.quantity <= 1} onPress={() => patch(l.key, { quantity: Math.max(1, l.quantity - 1) })} />
+                      <IconButton icon="minus" ring label="One fewer" tint={color.primary} size={40} disabled={l.quantity <= 1} onPress={() => patch(l.key, { quantity: Math.max(1, l.quantity - 1) })} />
                       <Text style={[s.text, { minWidth: 20, textAlign: 'center' }]} accessibilityLabel={`Quantity ${l.quantity}`}>{l.quantity}</Text>
-                      <IconButton icon="plus-circle-outline" label="One more" tint={color.primary} size={40} onPress={() => patch(l.key, { quantity: l.quantity + 1 })} />
+                      <IconButton icon="plus" ring label="One more" tint={color.primary} size={40} onPress={() => patch(l.key, { quantity: l.quantity + 1 })} />
                     </View>
                     <TextInput style={[s.input, { width: 88 }]} value={l.price} onChangeText={(price) => patch(l.key, { price })} keyboardType="numeric" placeholder="£" placeholderTextColor={color.placeholder} accessibilityLabel="Price in pounds" />
                     <Chip icon="eye-off-outline" label={ignored.includes(aliasKey(l.original)) ? 'Always ignored' : 'Always ignore'} selected={ignored.includes(aliasKey(l.original))} onPress={() => toggleIgnore(l.original)} />

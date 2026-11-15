@@ -65,9 +65,9 @@ export default function SettingsScreen() {
 
         <Section title="Expiry warning (both phones)">
           <View style={s.qtyRow}>
-            <IconButton icon="minus-circle-outline" label="One day fewer" tint={color.primary} size={40} disabled={warningDays <= 0} onPress={() => setWarningDays(Math.max(0, warningDays - 1))} />
+            <IconButton icon="minus" ring label="One day fewer" tint={color.primary} size={40} disabled={warningDays <= 0} onPress={() => setWarningDays(Math.max(0, warningDays - 1))} />
             <Text style={[s.text, { flex: 1, textAlign: 'center' }]}>Warn {warningDays} {warningDays === 1 ? 'day' : 'days'} before</Text>
-            <IconButton icon="plus-circle-outline" label="One day more" tint={color.primary} size={40} onPress={() => setWarningDays(warningDays + 1)} />
+            <IconButton icon="plus" ring label="One day more" tint={color.primary} size={40} onPress={() => setWarningDays(warningDays + 1)} />
           </View>
           <Text style={s.muted}>Change it for one Product on its Product screen.</Text>
         </Section>
@@ -75,7 +75,7 @@ export default function SettingsScreen() {
         {Platform.OS !== 'web' && <Section title="Daily digest (this phone)">
           <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 48 }}>
             <Text style={[s.text, { flex: 1 }]}>One notification a day</Text>
-            <Switch value={digest.on} onValueChange={(on) => changeDigest({ on })} accessibilityLabel="Daily digest" trackColor={{ true: color.brand }} />
+            <Switch value={digest.on} onValueChange={(on) => changeDigest({ on })} accessibilityLabel="Daily digest" trackColor={{ true: color.tint }} />
           </View>
           <ListRow
             title="Time" subtitle={`${pad(digest.hour)}:${pad(digest.minute)} (roughly; Android decides the exact minute)`}

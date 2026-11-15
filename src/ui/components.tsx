@@ -13,15 +13,20 @@ import { color, font, radius, space, TOUCH, urgencyStyle } from './theme';
 
 export type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-export function IconButton({ icon, label, onPress, tint = color.dark, size = 24, disabled }: {
-  icon: IconName; label: string; onPress: () => void; tint?: string; size?: number; disabled?: boolean;
+/** `ring`: a 1px circle of `size` around a half-size glyph — the font's own *-circle-outline glyphs are much heavier than our other outlines. */
+export function IconButton({ icon, label, onPress, tint = color.dark, size = 24, disabled, ring }: {
+  icon: IconName; label: string; onPress: () => void; tint?: string; size?: number; disabled?: boolean; ring?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!disabled }}
       style={[s.iconButton, disabled && { opacity: 0.45 }]} hitSlop={4}
     >
-      <MaterialCommunityIcons name={icon} size={size} color={tint} />
+      {ring ? (
+        <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 1, borderColor: tint, alignItems: 'center', justifyContent: 'center' }}>
+          <MaterialCommunityIcons name={icon} size={size / 2} color={tint} />
+        </View>
+      ) : <MaterialCommunityIcons name={icon} size={size} color={tint} />}
     </Pressable>
   );
 }
@@ -205,13 +210,13 @@ export function QuantityPicker({ value, onChange, unit, max }: { value: number; 
   return (
     <View style={{ gap: space.md }}>
       <View style={s.qtyRow}>
-        <IconButton icon="minus-circle-outline" label={`Less by ${step}`} onPress={() => onChange(clamp(value - step))} tint={color.primary} size={40} disabled={value <= 0} />
+        <IconButton icon="minus" ring label={`Less by ${step}`} onPress={() => onChange(clamp(value - step))} tint={color.primary} size={40} disabled={value <= 0} />
         <TextInput
           style={s.qtyInput} keyboardType="numeric" value={String(value)} accessibilityLabel={`Amount in ${unit === 'count' ? 'items' : unit}`}
           onChangeText={(t) => onChange(clamp(parseFloat(t.replace(',', '.')) || 0))} selectTextOnFocus
         />
         <Text style={s.qtyUnit}>{unit === 'count' ? '' : unit}</Text>
-        <IconButton icon="plus-circle-outline" label={`More by ${step}`} onPress={() => onChange(clamp(value + step))} tint={color.primary} size={40} disabled={value >= max} />
+        <IconButton icon="plus" ring label={`More by ${step}`} onPress={() => onChange(clamp(value + step))} tint={color.primary} size={40} disabled={value >= max} />
       </View>
       <View style={s.chipRow}>
         <Chip big label="¼" selected={value === clamp(max / 4)} onPress={() => onChange(clamp(max / 4))} />
@@ -334,7 +339,7 @@ export const s = StyleSheet.create({
   buttonPrimary: { backgroundColor: color.primary },
   buttonOutline: { borderWidth: 1, borderColor: color.primary, backgroundColor: color.surface },
   buttonText: { fontSize: font.md, fontWeight: '600' },
-  chip: { minHeight: 36, paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.full, borderWidth: 1, borderColor: color.line, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surface },
+  chip: { minHeight: 36, paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.full, borderWidth: 1, borderColor: color.brand, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surface },
   chipSelected: { backgroundColor: color.primary, borderColor: color.primary },
   chipText: { fontSize: font.sm, color: color.ink },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },

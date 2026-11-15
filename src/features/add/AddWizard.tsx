@@ -172,9 +172,9 @@ export default function AddWizard() {
         <WizardStep {...common} onNext={() => setStep(several && location ? 'date' : 'location')}>
           <Text style={s.text}>{draft.name}</Text>
           <View style={s.qtyRow}>
-            <IconButton icon="minus-circle-outline" label="One pack fewer" tint={color.primary} size={40} disabled={packs <= 1} onPress={() => setPacks(Math.max(1, packs - 1))} />
+            <IconButton icon="minus" ring label="One pack fewer" tint={color.primary} size={40} disabled={packs <= 1} onPress={() => setPacks(Math.max(1, packs - 1))} />
             <Text style={[s.qtyInput, { textAlignVertical: 'center' }]} accessibilityLabel={`${packs} packs`}>{packs}</Text>
-            <IconButton icon="plus-circle-outline" label="One pack more" tint={color.primary} size={40} onPress={() => setPacks(packs + 1)} />
+            <IconButton icon="plus" ring label="One pack more" tint={color.primary} size={40} onPress={() => setPacks(packs + 1)} />
           </View>
           <Text style={s.muted}>
             {packs} {packs === 1 ? 'pack' : 'packs'}{draft.baseUnit === 'count' && packAmount === 1 ? '' : ` = ${formatAmount(packs * packAmount, draft.baseUnit)}`}

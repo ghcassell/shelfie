@@ -108,6 +108,11 @@ export default function LarderScreen() {
                                 paddingHorizontal: space.screen,
                             }}
                         >
+                            <Chip
+                                label="Opened"
+                                selected={openedOnly}
+                                onPress={() => setOpenedOnly(!openedOnly)}
+                            />
                             {locations.map((l) => (
                                 <Chip
                                     key={l.id}
@@ -120,11 +125,6 @@ export default function LarderScreen() {
                                     }
                                 />
                             ))}
-                            <Chip
-                                label="Opened"
-                                selected={openedOnly}
-                                onPress={() => setOpenedOnly(!openedOnly)}
-                            />
                         </ScrollView>
                     </View>
                 </>
