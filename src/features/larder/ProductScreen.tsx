@@ -6,7 +6,7 @@ import { undoEntry, updateProduct } from '../../db/repositories';
 import { canUndo, formatAmount } from '../../domain/amount';
 import { formatDay, toDay } from '../../domain/dates';
 import { WASTE_REASONS } from '../../domain/types';
-import { Button, Chip, Field, ListRow, s, ScreenHeader, Section } from '../../ui/components';
+import { Button, Chip, Field, Form, ListRow, s, ScreenHeader, Section } from '../../ui/components';
 import { PhotoField } from '../add/camera';
 
 const num = (text: string) => { const n = parseFloat(text.replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
@@ -45,6 +45,7 @@ export default function ProductScreen() {
     <View style={s.screen}>
       <ScreenHeader title={product.name} back />
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
+        <Form>
         <Section title="Details">
           <PhotoField name={form.name} category={form.category} imageUrl={product.imageUrl} onChange={(imageUrl) => updateProduct(product.id, { imageUrl })} />
           <Field label="Name" value={form.name} onChangeText={set('name')} />
@@ -68,6 +69,7 @@ export default function ProductScreen() {
             <Chip label="Packs" selected={product.lowThresholdUnit === 'packs'} onPress={() => updateProduct(product.id, { lowThresholdUnit: 'packs' })} />
           </View>
         </Section>
+        </Form>
 
         <Button label="Save" onPress={save} />
 

@@ -4,7 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { KeyboardAvoidingView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../db/client';
 import migrations from '../db/migrations/migrations';
@@ -44,7 +44,9 @@ function App() {
 
   if (!session.updatedAt) return null; // first read not back yet
   return (
-    <>
+    // Android is edge-to-edge, so the window no longer resizes for the keyboard. Padding it here shrinks every screen's
+    // ScrollView, and a shrinking ScrollView scrolls its focused input into view.
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <StatusBar style="dark" />
       {signedIn ? (
         // Top inset: ScreenHeader / WizardStep. Bottom inset: here for every pushed screen; the tab bar pads itself.
@@ -52,6 +54,6 @@ function App() {
           <Stack.Screen name="(tabs)" options={{ contentStyle: { backgroundColor: color.surface } }} />
         </Stack>
       ) : <SignInScreen />}
-    </>
+    </KeyboardAvoidingView>
   );
 }
