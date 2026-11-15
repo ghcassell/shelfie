@@ -1,12 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 import { useLarder } from '../../db/queries';
 import { undoEntry, updateProduct } from '../../db/repositories';
 import { canUndo, formatAmount } from '../../domain/amount';
 import { formatDay, toDay } from '../../domain/dates';
 import { WASTE_REASONS } from '../../domain/types';
 import { Button, Chip, Field, ListRow, s, ScreenHeader, Section } from '../../ui/components';
+import { PhotoField } from '../add/camera';
 
 const num = (text: string) => { const n = parseFloat(text.replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
 const KIND = { used: 'Used', wasted: 'Thrown away', corrected: 'Corrected', split: 'Opened part' } as const;
@@ -45,6 +46,7 @@ export default function ProductScreen() {
       <ScreenHeader title={product.name} back />
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         <Section title="Details">
+          <PhotoField name={form.name} category={form.category} imageUrl={product.imageUrl} onChange={(imageUrl) => updateProduct(product.id, { imageUrl })} />
           <Field label="Name" value={form.name} onChangeText={set('name')} />
           <Field label="Brand" value={form.brand} onChangeText={set('brand')} />
           <Field label="Size on the pack" value={form.size} onChangeText={set('size')} />

@@ -7,7 +7,7 @@ import { Camera, type CameraRef, useCameraDevice, useCameraPermission, usePhotoO
 import { CodeScanner } from 'react-native-vision-camera-barcode-scanner';
 import { processImageTextRecognition } from 'react-native-vision-camera-mlkit';
 import type { OcrLine } from '../../domain/receipt';
-import { Button, IconButton, s } from '../../ui/components';
+import { Button, IconButton, ProductTile, s, Sheet } from '../../ui/components';
 import { color, radius, space } from '../../ui/theme';
 
 /** Asks for the camera, or explains how to carry on without it. */
@@ -123,6 +123,68 @@ export function TextCamera({ label, onText, tall }: { label: string; onText: (re
       <Button label={busy ? 'Reading…' : label} icon="camera" onPress={capture} disabled={busy || !device} />
       {!!error && <Text style={s.error}>{error}</Text>}
     </CameraGate>
+  );
+}
+
+/** Takes the user's own photo of a Product and hands it back as a small data URI. */
+export function PhotoCamera({ onPhoto }: { onPhoto: (dataUri: string) => void }) {
+  const focused = useIsFocused();
+  const device = useCameraDevice('back');
+  const photo = usePhotoOutput({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const capture = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const shot = await photo.capturePhoto({}, {});
+      const full = await shot.saveToTemporaryFileAsync();
+      shot.dispose();
+      const uri = full.startsWith('file://') ? full : `file://${full}`;
+      // ponytail: the photo is stored in the Product row itself (about 10 KB), so it syncs to the other phone with no file storage to run.
+      // Move to Supabase Storage if photos ever need to be bigger than a tile.
+      const small = await manipulateAsync(uri, [{ resize: { width: 240 } }], { compress: 0.6, format: SaveFormat.JPEG, base64: true });
+      new File(uri).delete();
+      new File(small.uri).delete();
+      if (!small.base64) throw new Error('No image data');
+      onPhoto(`data:image/jpeg;base64,${small.base64}`);
+    } catch (e) {
+      console.warn('Product photo', e);
+      setError('Could not take that photo. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <CameraGate>
+      <View style={st.frame}>
+        {device && <Camera style={StyleSheet.absoluteFill} device={device} isActive={focused} outputs={[photo]} resizeMode="cover" enableNativeTapToFocusGesture />}
+      </View>
+      <Button label={busy ? 'Saving…' : 'Take photo'} icon="camera" onPress={capture} disabled={busy || !device} />
+      {!!error && <Text style={s.error}>{error}</Text>}
+    </CameraGate>
+  );
+}
+
+/** The Product's tile with its photo buttons. With no photo the tile shows the guessed emoji. */
+export function PhotoField({ name, category, imageUrl, onChange }: {
+  name: string; category: string | null; imageUrl: string | null; onChange: (imageUrl: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+      <ProductTile name={name} category={category} imageUrl={imageUrl} size={72} />
+      <View style={{ flex: 1, gap: space.sm }}>
+        <Button label={imageUrl ? 'Change photo' : 'Add a photo'} icon="camera" kind="secondary" onPress={() => setOpen(true)} />
+        {/* Only the user's own photo can be removed: an Open Food Facts picture would be gone for good. */}
+        {imageUrl?.startsWith('data:') && <Button label="Remove photo" kind="secondary" onPress={() => onChange(null)} />}
+      </View>
+      <Sheet visible={open} onClose={() => setOpen(false)} title="Photo of the product">
+        {open && <PhotoCamera onPhoto={(uri) => { setOpen(false); onChange(uri); }} />}
+      </Sheet>
+    </View>
   );
 }
 

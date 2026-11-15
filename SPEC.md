@@ -8,7 +8,7 @@ A shared, offline-first Android pantry app for two people (one Household). Priva
 
 Hard constraints: Android only; no or minimal running cost (free tiers only); local SQLite is the app's source of truth and everything works offline after first sign-in; receipt photos leave the device only on an explicit "Improve with AI" tap; no LLM key in the app or repo.
 
-Out of scope: iOS, Play Store, branding assets, monetisation, recipe suggestions, nutrition overview, home-screen widget, dark mode, user-taken Product photos.
+Out of scope: iOS, Play Store, branding assets, monetisation, recipe suggestions, nutrition overview, home-screen widget, dark mode.
 
 ## 2. Stack
 
@@ -18,7 +18,7 @@ Layout under `src/`: `db/` (schema, migrations, repositories), `domain/` (pure T
 
 ## 3. Data model
 
-- **Product**: shared catalogue entry: name, brand, size, category, image (OFF URL, cached locally), barcode (unique per Household when present), one Base unit (g, ml or count), optional opened shelf life ("use within N days"), optional per-Product warning-days override, optional Running-low threshold (in base unit or "N packs").
+- **Product**: shared catalogue entry: name, brand, size, category, image (OFF URL, cached locally, or the user's own photo stored in the row as a small data URI; with neither, an emoji guessed from the name and category), barcode (unique per Household when present), one Base unit (g, ml or count), optional opened shelf life ("use within N days"), optional per-Product warning-days override, optional Running-low threshold (in base unit or "N packs").
 - **Batch**: stock of one Product bought together: starting amount (base unit), pack count, one Location, date (or "needs a date" or explicit no-expiry flag), Date kind (use-by / best-before; default best-before), optional opened-on, optional price (blank = unknown), added by Member, added date. Multi-packs are one Batch with a pack count.
 - **Location**: user-defined, unique per Household (case-insensitive). Exactly one per Batch; moved by hand. Moving to a freezer prompts for a new date; no automatic rules.
 - **Usage entry**: immutable, append-only; four kinds (used / wasted / corrected / split). Remaining amount = starting amount minus all entries (corrected entries are signed), never stored overwritten; below zero shows as zero. Finished Batch (zero) is kept as history and hidden from the Larder. Delete is for mistaken adds only (tombstone).
@@ -48,7 +48,7 @@ Layout under `src/`: `db/` (schema, migrations, repositories), `domain/` (pure T
 
 Tabs: **Larder**, **Shopping**, **Needs attention** (badge). Overflow menu: **Settings**, **Waste report**. FAB on Larder.
 
-**Larder** (prototype Variant A): flat list sorted by urgency (Expired, Past best, Expiring soon, rest by date, no-expiry last), filter chips (Location etc.; no sort picker), Needs-attention banner at top (red-tinted if anything Expired, else amber). Rows: product image or tint tile with first letter, name, StatusPill, 4dp state-colour left edge. Screen-reader label e.g. "Semi-skimmed milk, 1 litre, fridge, expires in 2 days". Search: case-insensitive substring on Product name and brand, combined with the chips. Empty: "Your larder is empty. Scan your first item." [Scan].
+**Larder** (prototype Variant A): flat list sorted by urgency (Expired, Past best, Expiring soon, rest by date, no-expiry last), filter chips (Location etc.; no sort picker), Needs-attention banner at top (red-tinted if anything Expired, else amber). Rows: product image or tint tile with an emoji guessed from the name, name, StatusPill, 4dp state-colour left edge. Screen-reader label e.g. "Semi-skimmed milk, 1 litre, fridge, expires in 2 days". Search: case-insensitive substring on Product name and brand, combined with the chips. Empty: "Your larder is empty. Scan your first item." [Scan].
 
 **Add wizard** (stepped, WizardStep "Step n of m", fixed bottom bar): scan barcode or manual, then OFF lookup (cache every hit; manual Products cached by barcode and synced), not-found path is first-class (manual entry), then Product details, quantity, Location, date step.
 
@@ -64,7 +64,7 @@ Tabs: **Larder**, **Shopping**, **Needs attention** (badge). Overflow menu: **Se
 
 **Receipt scanning:** capture photo, on-device ML Kit OCR + regex (sends nothing). Optional per-receipt "Improve with AI" (needs connection): downscaled photo to Claude Haiku 5.5 via the Edge Function holding the key (Supabase secret), `max_tokens` capped, hard monthly spend cap in the Anthropic Console. Lines fuzzy-match the Household's own Products only (never OFF), confirmed matches saved as Receipt aliases; unmatched lines create a Product (base unit guessed from size in the name, else count). One-screen checklist (tick, editable name, changeable match, quantity, price), all ticked except an ignore list (carrier bag, discount, total, loyalty, ...). "Add ticked" creates Batches with no date (Needs a date), price recorded; photo deleted, no receipt record. Parser ships with a corpus of about 10 real receipts from the household's usual shops (user to collect).
 
-**Batch add ("Add several"):** the normal wizard with "Save & scan next"; each Batch saves immediately, no draft. Location and Date kind carry over ("Adding to: <Location>" chip); quantity resets to 1; date never carries. Unknown barcode: name-only quick create (count), keeps barcode; brand and size completed later on the Product screen (user photos out of scope; tint tile stays). Date step opens in the date-scanning camera. Same barcode and date as the last saved Batch bumps its pack count. "Fill in dates" mode walks Batches needing a date ("Next"; scanning a pack barcode jumps to its Batch). Summary on exit when 2 or more added: "Added N Batches · M need a date · K new Products with no details" + button to Needs attention.
+**Batch add ("Add several"):** the normal wizard with "Save & scan next"; each Batch saves immediately, no draft. Location and Date kind carry over ("Adding to: <Location>" chip); quantity resets to 1; date never carries. Unknown barcode: name-only quick create (count), keeps barcode; brand and size completed later on the Product screen (the emoji tile stays until a photo is added there). Date step opens in the date-scanning camera. Same barcode and date as the last saved Batch bumps its pack count. "Fill in dates" mode walks Batches needing a date ("Next"; scanning a pack barcode jumps to its Batch). Summary on exit when 2 or more added: "Added N Batches · M need a date · K new Products with no details" + button to Needs attention.
 
 **Waste report:** Settings/overflow row. Current calendar month with arrows: total cost, wasted Batch count, most-wasted Products, split by Waste reason. Cost = wasted amount / Batch size x price; shown "at least £X, N wasted Batches have no price" when prices are missing. Counts wasted entries net of corrections. Empty: "No waste this month."
 

@@ -9,7 +9,7 @@ import type { BaseUnit } from '../../domain/types';
 import { Button, Chip, Field, IconButton, s, Sheet, WizardStep } from '../../ui/components';
 import { color, space } from '../../ui/theme';
 import { ensureNotificationPermission } from '../settings/digest';
-import { BarcodeCamera } from './camera';
+import { BarcodeCamera, PhotoField } from './camera';
 import { type DateChoice, DateEditor, NEEDS_DATE } from './DateEditor';
 import { gtinFromScan, isShopCode } from '../../domain/off';
 import { lookupBarcode } from './off';
@@ -152,6 +152,7 @@ export default function AddWizard() {
             <Text style={s.muted}>Just the name for now. Brand and size can be filled in later on the Product screen.</Text>
           ) : (
             <>
+              <PhotoField name={draft.name} category={draft.category} imageUrl={draft.imageUrl} onChange={(imageUrl) => set({ imageUrl })} />
               <Field label="Brand" value={draft.brand} onChangeText={(brand) => set({ brand })} />
               <Field label="Size on the pack (e.g. 400 g)" value={draft.size} onChangeText={(size) => set({ size, ...unitFrom(size, draft) })} />
               <Field label="Category" value={draft.category} onChangeText={(category) => set({ category })} />

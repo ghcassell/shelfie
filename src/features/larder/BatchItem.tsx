@@ -28,7 +28,7 @@ export function BatchItem({ row, today }: { row: Row; today: string }) {
       title={product.name}
       subtitle={subtitle}
       edge={edgeColor(urgency)}
-      left={<ProductTile name={product.name} imageUrl={product.imageUrl} />}
+      left={<ProductTile name={product.name} category={product.category} imageUrl={product.imageUrl} />}
       accessibilityLabel={rowLabel(product.name, amount, row.locationName, spokenStatus(urgency, date, today))}
       onPress={() => router.push(`/batch/${batch.id}`)}
       right={

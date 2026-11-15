@@ -46,7 +46,7 @@ export default function FillDatesScreen() {
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         <Text style={s.muted}>{index + 1} of {undated.length} without a date</Text>
         <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
-          <ProductTile name={row.product.name} imageUrl={row.product.imageUrl} size={56} />
+          <ProductTile name={row.product.name} category={row.product.category} imageUrl={row.product.imageUrl} size={56} />
           <View style={{ flex: 1 }}>
             <Text style={[s.text, { fontWeight: '600' }]}>{row.product.name}</Text>
             <Text style={s.muted}>{formatAmount(row.remaining, row.product.baseUnit)} · {row.locationName}</Text>

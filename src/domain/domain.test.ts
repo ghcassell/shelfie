@@ -1,3 +1,4 @@
+import { emojiFor } from './emoji';
 import { canUndo, countedEntries, formatAmount, packsRemaining, planSplit, remaining, reversalOf } from './amount';
 import { addDays, addMonths, diffDays } from './dates';
 import { compareUrgency, digestText, effectiveExpiry, pillText, rowLabel, spokenStatus, urgency } from './expiry';
@@ -217,5 +218,23 @@ describe('Open Food Facts', () => {
     const recent = Array.from({ length: 15 }, (_, i) => i * 1000);
     expect(allowLookup(recent, 30000)).toBeNull();
     expect(allowLookup(recent, 61000)).toHaveLength(14); // 13 still inside the minute, plus this one
+  });
+});
+
+describe('Emoji for a Product with no photo', () => {
+  test('name first, then category, else a trolley', () => {
+    expect(emojiFor('Semi-skimmed milk')).toBe('🥛');
+    expect(emojiFor('Orange juice')).toBe('🧃'); // what it is made into beats what it is made of
+    expect(emojiFor('Free range eggs')).toBe('🥚'); // plurals
+    expect(emojiFor('Steak')).toBe('🥩'); // whole words only: not "tea"
+    expect(emojiFor('Heinz Beanz', 'Canned foods')).toBe('🥫');
+    expect(emojiFor('Mystery item', null)).toBe('🛒');
+  });
+  test('things that are not food win over the food words in their names', () => {
+    expect(emojiFor('Chicken in gravy cat food')).toBe('🐱');
+    expect(emojiFor('Paracetamol 500mg tablets')).toBe('💊');
+    expect(emojiFor('Toilet rolls')).toBe('🧻');
+    expect(emojiFor('Hand cream')).toBe('🧴');
+    expect(emojiFor('Hot dogs')).toBe('🌭');
   });
 });
