@@ -37,7 +37,12 @@ export function ScreenHeader({ title, back, right, menu, logo, children }: {
     <View style={[s.header, { paddingTop: insets.top + space.sm }, Children.toArray(children).length > 0 && { paddingBottom: space.md }]}>
       <View style={s.headerRow}>
       {back && <IconButton icon="arrow-left" label="Back" onPress={typeof back === 'function' ? back : () => router.back()} />}
-      {logo && <Image source={require('../../assets/icon.png')} style={s.headerLogo} accessibilityIgnoresInvertColors />}
+      {logo && (
+        // The shadow sits on a wrapper: expo-image clips to its own rounded bounds.
+        <View style={s.headerLogoShadow}>
+          <Image source={require('../../assets/icon.png')} style={s.headerLogo} accessibilityIgnoresInvertColors />
+        </View>
+      )}
       <Text style={[s.headerTitle, logo && { fontSize: 32 }]} accessibilityRole="header" numberOfLines={2}>{title}</Text>
       {right}
       {menu && <IconButton icon="dots-vertical" label="More options" onPress={() => setOpen(true)} />}
@@ -96,7 +101,7 @@ export function StatusPill({ state, text }: { state: Urgency; text: string | nul
 /** The Product's photo (Open Food Facts or the user's own), else a tint tile with an emoji guessed from its name. */
 export function ProductTile({ name, category, imageUrl, size = 44 }: { name: string; category?: string | null; imageUrl: string | null; size?: number }) {
   const [failed, setFailed] = useState<string | null>(null); // e.g. offline before the photo was ever cached
-  const box = { width: size, height: size, borderRadius: radius.sm };
+  const box = { width: size, height: size, borderRadius: radius.sm, borderWidth: 0.2, borderColor: color.brand };
   if (imageUrl && failed !== imageUrl) {
     return <Image source={imageUrl} style={box} contentFit="cover" cachePolicy="disk" accessibilityIgnoresInvertColors onError={() => setFailed(imageUrl)} />;
   }
@@ -322,6 +327,7 @@ export const s = StyleSheet.create({
   header: { gap: space.sm, paddingBottom: space.sm, backgroundColor: color.surface, borderBottomWidth: 1, borderBottomColor: color.brand },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.screen, minHeight: TOUCH }, // as tall as an icon button, so titles line up with or without one
   headerLogo: { width: TOUCH, height: TOUCH, borderRadius: radius.md },
+  headerLogoShadow: { borderRadius: radius.md, boxShadow: '0 2px 6px #0c6b58' },
   headerTitle: { flex: 1, fontFamily: font.title, fontSize: font.xl, color: color.dark, fontWeight: '900' },
   iconButton: { minWidth: TOUCH, minHeight: TOUCH, alignItems: 'center', justifyContent: 'center' },
   button: { minHeight: TOUCH, paddingHorizontal: space.lg, paddingVertical: space.md, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
