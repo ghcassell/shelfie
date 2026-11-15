@@ -328,7 +328,7 @@ export const Section = ({ title, children }: { title: string; children: ReactNod
 
 export const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.surface },
-  body: { padding: space.screen, gap: space.lg },
+  body: { padding: space.screen, gap: space.xxl },
   header: { gap: space.sm, paddingBottom: space.sm, backgroundColor: color.surface, borderBottomWidth: 1, borderBottomColor: color.brand },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.screen, minHeight: TOUCH, paddingBottom: 3 }, // as tall as an icon button, so titles line up with or without one
   headerLogo: { width: TOUCH, height: TOUCH, borderRadius: radius.md },
