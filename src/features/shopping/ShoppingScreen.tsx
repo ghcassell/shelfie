@@ -38,12 +38,12 @@ export default function ShoppingScreen() {
       <ScreenHeader
         title="Shopping"
         right={entries.some((e) => !e.ticked) ? <IconButton icon="share-variant" label="Share the list" onPress={share} /> : undefined}
-      />
-      <View style={{ paddingHorizontal: space.screen, gap: space.sm, paddingBottom: space.sm }}>
+      >
+      <View style={{ paddingHorizontal: space.screen, gap: space.sm }}>
         <View style={{ flexDirection: 'row', gap: space.sm }}>
           <TextInput style={[s.input, { flex: 2 }]} placeholder="Add something" placeholderTextColor={color.placeholder} value={name} onChangeText={setName} onSubmitEditing={() => add()} accessibilityLabel="Name" returnKeyType="done" />
           <TextInput style={[s.input, { flex: 1 }]} placeholder="2 tins" placeholderTextColor={color.placeholder} value={quantity} onChangeText={setQuantity} onSubmitEditing={() => add()} accessibilityLabel="Quantity, optional" />
-          <IconButton icon="plus-circle" label="Add to the list" tint={color.primary} onPress={() => add()} />
+          <IconButton icon="plus-circle" label="Add to the list" tint={color.primary} size={40} disabled={!name.trim()} onPress={() => add()} />
         </View>
         {suggestions.length > 0 && (
           <View style={s.chipRow}>
@@ -51,6 +51,7 @@ export default function ShoppingScreen() {
           </View>
         )}
       </View>
+      </ScreenHeader>
       <FlatList
         data={sorted}
         keyExtractor={(e) => e.id}

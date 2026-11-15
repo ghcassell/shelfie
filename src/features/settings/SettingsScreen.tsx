@@ -56,9 +56,9 @@ export default function SettingsScreen() {
 
         <Section title="Expiry warning (both phones)">
           <View style={s.qtyRow}>
-            <IconButton icon="minus-circle-outline" label="One day fewer" tint={color.primary} onPress={() => setWarningDays(Math.max(0, warningDays - 1))} />
+            <IconButton icon="minus-circle-outline" label="One day fewer" tint={color.primary} size={40} disabled={warningDays <= 0} onPress={() => setWarningDays(Math.max(0, warningDays - 1))} />
             <Text style={[s.text, { flex: 1, textAlign: 'center' }]}>Warn {warningDays} {warningDays === 1 ? 'day' : 'days'} before</Text>
-            <IconButton icon="plus-circle-outline" label="One day more" tint={color.primary} onPress={() => setWarningDays(warningDays + 1)} />
+            <IconButton icon="plus-circle-outline" label="One day more" tint={color.primary} size={40} onPress={() => setWarningDays(warningDays + 1)} />
           </View>
           <Text style={s.muted}>Change it for one Product on its Product screen.</Text>
         </Section>

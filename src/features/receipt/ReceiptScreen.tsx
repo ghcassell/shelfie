@@ -3,7 +3,7 @@ import { File } from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLarder } from '../../db/queries';
 import { addBatch, addLocation, addProduct, saveAlias } from '../../db/repositories';
 import { db } from '../../db/client';
@@ -129,7 +129,7 @@ export default function ReceiptScreen() {
             {lines.map((l) => {
               const product = products.find((p) => p.id === l.productId);
               return (
-                <View key={l.key} style={{ gap: space.sm, paddingVertical: space.sm, borderBottomWidth: 1, borderBottomColor: color.line, opacity: l.ticked ? 1 : 0.55 }}>
+                <View key={l.key} style={{ gap: space.sm, paddingVertical: space.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.brand, opacity: l.ticked ? 1 : 0.55 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                     <Pressable
                       onPress={() => patch(l.key, { ticked: !l.ticked })} accessibilityRole="checkbox" accessibilityState={{ checked: l.ticked }}
@@ -141,9 +141,12 @@ export default function ReceiptScreen() {
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap', paddingLeft: TOUCH + space.sm }}>
                     <Chip icon={product ? 'link-variant' : 'plus'} label={product ? product.name : 'New Product'} onPress={() => setChoosing(l.key)} />
-                    <IconButton icon="minus-circle-outline" label="One fewer" tint={color.primary} onPress={() => patch(l.key, { quantity: Math.max(1, l.quantity - 1) })} />
-                    <Text style={s.text} accessibilityLabel={`Quantity ${l.quantity}`}>{l.quantity}</Text>
-                    <IconButton icon="plus-circle-outline" label="One more" tint={color.primary} onPress={() => patch(l.key, { quantity: l.quantity + 1 })} />
+                    {/* One block, so the stepper never wraps apart. */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                      <IconButton icon="minus-circle-outline" label="One fewer" tint={color.primary} size={40} disabled={l.quantity <= 1} onPress={() => patch(l.key, { quantity: Math.max(1, l.quantity - 1) })} />
+                      <Text style={[s.text, { minWidth: 20, textAlign: 'center' }]} accessibilityLabel={`Quantity ${l.quantity}`}>{l.quantity}</Text>
+                      <IconButton icon="plus-circle-outline" label="One more" tint={color.primary} size={40} onPress={() => patch(l.key, { quantity: l.quantity + 1 })} />
+                    </View>
                     <TextInput style={[s.input, { width: 88 }]} value={l.price} onChangeText={(price) => patch(l.key, { price })} keyboardType="numeric" placeholder="£" placeholderTextColor={color.placeholder} accessibilityLabel="Price in pounds" />
                     <Chip icon="eye-off-outline" label={ignored.includes(aliasKey(l.original)) ? 'Always ignored' : 'Always ignore'} selected={ignored.includes(aliasKey(l.original))} onPress={() => toggleIgnore(l.original)} />
                   </View>

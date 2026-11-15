@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { type ComponentProps, type ComponentRef, createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Children, type ComponentProps, type ComponentRef, createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated, Dimensions, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputProps, View, type ViewStyle,
 } from 'react-native';
@@ -13,25 +13,36 @@ import { color, font, radius, space, TOUCH, urgencyStyle } from './theme';
 
 export type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-export function IconButton({ icon, label, onPress, tint = color.dark }: { icon: IconName; label: string; onPress: () => void; tint?: string }) {
+export function IconButton({ icon, label, onPress, tint = color.dark, size = 24, disabled }: {
+  icon: IconName; label: string; onPress: () => void; tint?: string; size?: number; disabled?: boolean;
+}) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={s.iconButton} hitSlop={4}>
-      <MaterialCommunityIcons name={icon} size={24} color={tint} />
+    <Pressable
+      onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!disabled }}
+      style={[s.iconButton, disabled && { opacity: 0.45 }]} hitSlop={4}
+    >
+      <MaterialCommunityIcons name={icon} size={size} color={tint} />
     </Pressable>
   );
 }
 
-export function ScreenHeader({ title, back, right, menu }: {
-  title: string; back?: boolean; right?: ReactNode; menu?: { label: string; onPress: () => void }[];
+/** Fixed top of a screen: title row, then any `children` that stay put (search, filters), then a divider line. */
+export function ScreenHeader({ title, back, right, menu, logo, children }: {
+  title: string; back?: boolean | (() => void); right?: ReactNode; menu?: { label: string; onPress: () => void }[]; logo?: boolean; children?: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   return (
-    <View style={[s.header, { paddingTop: insets.top + space.sm, borderBottomWidth: 0 }]}>
-      {back && <IconButton icon="arrow-left" label="Back" onPress={() => router.back()} />}
-      <Text style={s.headerTitle} accessibilityRole="header" numberOfLines={2}>{title}</Text>
+    // A bit more room above the divider when it sits under fixed content rather than the title. toArray drops the false of an unmet `cond && <X />`.
+    <View style={[s.header, { paddingTop: insets.top + space.sm }, Children.toArray(children).length > 0 && { paddingBottom: space.md }]}>
+      <View style={s.headerRow}>
+      {back && <IconButton icon="arrow-left" label="Back" onPress={typeof back === 'function' ? back : () => router.back()} />}
+      {logo && <Image source={require('../../assets/icon.png')} style={s.headerLogo} accessibilityIgnoresInvertColors />}
+      <Text style={[s.headerTitle, logo && { fontSize: 32 }]} accessibilityRole="header" numberOfLines={2}>{title}</Text>
       {right}
       {menu && <IconButton icon="dots-vertical" label="More options" onPress={() => setOpen(true)} />}
+      </View>
+      {children}
       {menu && (
         <Sheet visible={open} onClose={() => setOpen(false)}>
           {menu.map((m) => (
@@ -145,19 +156,20 @@ export function FAB({ icon = 'plus', label, onPress }: { icon?: IconName; label:
 }
 
 /** One step of the add wizard: "Step n of m", scrolling body, fixed bottom bar. */
-export function WizardStep({ step, of, title, children, onBack, onNext, nextLabel = 'Next', nextDisabled, onSaveNext, scroll = true }: {
-  step: number; of: number; title: string; children: ReactNode; onBack: () => void; onNext?: () => void; nextLabel?: string;
+export function WizardStep({ heading, onExit, step, of, title, children, onBack, onNext, nextLabel = 'Next', nextDisabled, onSaveNext, scroll = true }: {
+  heading: string; onExit: () => void; step: number; of: number; title: string; children: ReactNode; onBack: () => void; onNext?: () => void; nextLabel?: string;
   nextDisabled?: boolean; onSaveNext?: () => void; scroll?: boolean;
 }) {
-  const insets = useSafeAreaInsets();
   const Body = scroll ? ScrollView : View;
   return (
     <View style={s.screen}>
-      <View style={[s.wizardTop, { paddingTop: insets.top + space.sm }]}>
-        <Text style={s.wizardCount}>Step {step} of {of}</Text>
-        <View style={s.progressTrack}><View style={[s.progressFill, { width: `${(step / of) * 100}%` }]} /></View>
-        <Text style={s.headerTitle} accessibilityRole="header">{title}</Text>
-      </View>
+      <ScreenHeader title={heading} back={onExit}>
+        <View style={s.wizardTop}>
+          <Text style={s.wizardCount}>Step {step} of {of}</Text>
+          <View style={s.progressTrack}><View style={[s.progressFill, { width: `${(step / of) * 100}%` }]} /></View>
+          <Text style={s.sheetTitle} accessibilityRole="header">{title}</Text>
+        </View>
+      </ScreenHeader>
       <Body style={{ flex: 1 }} {...(scroll ? { contentContainerStyle: s.wizardBody, keyboardShouldPersistTaps: 'handled' as const } : {})}>
         <Form>{children}</Form>
       </Body>
@@ -188,13 +200,13 @@ export function QuantityPicker({ value, onChange, unit, max }: { value: number; 
   return (
     <View style={{ gap: space.md }}>
       <View style={s.qtyRow}>
-        <IconButton icon="minus-circle-outline" label={`Less by ${step}`} onPress={() => onChange(clamp(value - step))} tint={color.primary} />
+        <IconButton icon="minus-circle-outline" label={`Less by ${step}`} onPress={() => onChange(clamp(value - step))} tint={color.primary} size={40} disabled={value <= 0} />
         <TextInput
           style={s.qtyInput} keyboardType="numeric" value={String(value)} accessibilityLabel={`Amount in ${unit === 'count' ? 'items' : unit}`}
           onChangeText={(t) => onChange(clamp(parseFloat(t.replace(',', '.')) || 0))} selectTextOnFocus
         />
         <Text style={s.qtyUnit}>{unit === 'count' ? '' : unit}</Text>
-        <IconButton icon="plus-circle-outline" label={`More by ${step}`} onPress={() => onChange(clamp(value + step))} tint={color.primary} />
+        <IconButton icon="plus-circle-outline" label={`More by ${step}`} onPress={() => onChange(clamp(value + step))} tint={color.primary} size={40} disabled={value >= max} />
       </View>
       <View style={s.chipRow}>
         <Chip label="¼" selected={value === clamp(max / 4)} onPress={() => onChange(clamp(max / 4))} />
@@ -307,7 +319,9 @@ export const Section = ({ title, children }: { title: string; children: ReactNod
 export const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.surface },
   body: { padding: space.screen, gap: space.lg },
-  header: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.screen, paddingBottom: space.sm, backgroundColor: color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.brand },
+  header: { gap: space.sm, paddingBottom: space.sm, backgroundColor: color.surface, borderBottomWidth: 1, borderBottomColor: color.brand },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.screen, minHeight: TOUCH }, // as tall as an icon button, so titles line up with or without one
+  headerLogo: { width: TOUCH, height: TOUCH, borderRadius: radius.md },
   headerTitle: { flex: 1, fontFamily: font.title, fontSize: font.xl, color: color.dark, fontWeight: '900' },
   iconButton: { minWidth: TOUCH, minHeight: TOUCH, alignItems: 'center', justifyContent: 'center' },
   button: { minHeight: TOUCH, paddingHorizontal: space.lg, paddingVertical: space.md, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
@@ -321,15 +335,15 @@ export const s = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: 2, borderRadius: radius.full, alignSelf: 'flex-start' },
   pillText: { fontSize: font.xs, fontWeight: '600' },
   tile: { backgroundColor: color.tint, alignItems: 'center', justifyContent: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, paddingRight: space.screen, paddingLeft: space.screen - 4, minHeight: TOUCH, borderLeftWidth: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.line, backgroundColor: color.surface },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, paddingRight: space.screen, paddingLeft: space.screen - 4, minHeight: TOUCH, borderLeftWidth: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.brand, backgroundColor: color.surface },
   rowTitle: { fontSize: font.md, fontWeight: '600', color: color.ink },
   rowSubtitle: { fontSize: font.sm, color: color.inkMuted, marginTop: 2 },
-  banner: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md, marginHorizontal: space.screen, marginBottom: space.sm, borderRadius: radius.md, borderWidth: 1, minHeight: TOUCH },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md, marginHorizontal: space.screen, borderRadius: radius.md, borderWidth: 1, minHeight: TOUCH },
   bannerText: { flex: 1, fontSize: font.md, color: color.ink, fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.xxl },
   emptyText: { fontSize: font.md, color: color.inkMuted, textAlign: 'center' },
   fab: { position: 'absolute', right: space.lg, bottom: space.lg, width: 56, height: 56, borderRadius: radius.full, backgroundColor: color.primary, alignItems: 'center', justifyContent: 'center', elevation: 6 },
-  wizardTop: { paddingHorizontal: space.screen, gap: space.sm, paddingBottom: space.sm },
+  wizardTop: { paddingHorizontal: space.screen, gap: space.sm },
   wizardCount: { fontSize: font.sm, color: color.inkMuted },
   wizardBody: { padding: space.screen, gap: space.lg },
   progressTrack: { height: 4, borderRadius: radius.full, backgroundColor: color.line },

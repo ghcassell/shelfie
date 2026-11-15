@@ -48,6 +48,7 @@ export default function LarderScreen() {
         <View style={s.screen}>
             <ScreenHeader
                 title="Shelfie"
+                logo
                 menu={[
                     {
                         label: "Settings",
@@ -58,7 +59,7 @@ export default function LarderScreen() {
                         onPress: () => router.push("/waste"),
                     },
                 ]}
-            />
+            >
             {larder.length > 0 && (
                 <>
                     <TextInput
@@ -66,7 +67,6 @@ export default function LarderScreen() {
                             s.input,
                             {
                                 marginHorizontal: space.screen,
-                                marginBottom: space.sm,
                             },
                         ]}
                         placeholder="Search name or brand"
@@ -83,7 +83,6 @@ export default function LarderScreen() {
                             contentContainerStyle={{
                                 gap: space.sm,
                                 paddingHorizontal: space.screen,
-                                paddingBottom: space.sm,
                             }}
                         >
                             {locations.map((l) => (
@@ -114,6 +113,7 @@ export default function LarderScreen() {
                     onPress={() => router.push("/attention")}
                 />
             )}
+            </ScreenHeader>
             <FlatList
                 data={rows}
                 keyExtractor={(r) => r.batch.id}

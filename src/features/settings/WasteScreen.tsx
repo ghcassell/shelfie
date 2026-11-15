@@ -19,7 +19,7 @@ export default function WasteScreen() {
 
   return (
     <View style={s.screen}>
-      <ScreenHeader title="Waste report" back />
+      <ScreenHeader title="Waste report" back>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.screen }}>
         <IconButton icon="chevron-left" label="Previous month" onPress={() => setFirst(addMonths(first, -1))} />
         <Text style={[s.text, { flex: 1, textAlign: 'center', fontWeight: '600' }]} accessibilityLiveRegion="polite">
@@ -27,6 +27,7 @@ export default function WasteScreen() {
         </Text>
         <IconButton icon="chevron-right" label="Next month" onPress={() => setFirst(addMonths(first, 1))} />
       </View>
+      </ScreenHeader>
       {report.wastedBatches === 0 ? (
         <EmptyState icon="leaf" text="No waste this month." />
       ) : (
