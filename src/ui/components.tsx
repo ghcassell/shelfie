@@ -69,14 +69,14 @@ export function Button({ label, onPress, kind = 'primary', icon, disabled, style
   );
 }
 
-export function Chip({ label, selected, onPress, icon }: { label: string; selected?: boolean; onPress?: () => void; icon?: IconName }) {
+export function Chip({ label, selected, onPress, icon, big }: { label: string; big?: boolean; selected?: boolean; onPress?: () => void; icon?: IconName }) {
   return (
     <Pressable
       onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!selected }}
       style={[s.chip, selected && s.chipSelected]} hitSlop={{ top: 8, bottom: 8 }}
     >
       {icon && <MaterialCommunityIcons name={icon} size={16} color={selected ? '#fff' : color.ink} />}
-      <Text style={[s.chipText, selected && { color: '#fff' }]}>{label}</Text>
+      <Text style={[s.chipText, selected && { color: '#fff' }, big && { fontSize: font.lg }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -209,8 +209,8 @@ export function QuantityPicker({ value, onChange, unit, max }: { value: number; 
         <IconButton icon="plus-circle-outline" label={`More by ${step}`} onPress={() => onChange(clamp(value + step))} tint={color.primary} size={40} disabled={value >= max} />
       </View>
       <View style={s.chipRow}>
-        <Chip label="¼" selected={value === clamp(max / 4)} onPress={() => onChange(clamp(max / 4))} />
-        <Chip label="½" selected={value === clamp(max / 2)} onPress={() => onChange(clamp(max / 2))} />
+        <Chip big label="¼" selected={value === clamp(max / 4)} onPress={() => onChange(clamp(max / 4))} />
+        <Chip big label="½" selected={value === clamp(max / 2)} onPress={() => onChange(clamp(max / 2))} />
         <Chip label={`All (${formatAmount(max, unit)})`} selected={value === max} onPress={() => onChange(max)} />
       </View>
     </View>
