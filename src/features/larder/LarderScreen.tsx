@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -72,20 +73,32 @@ export default function LarderScreen() {
             >
             {larder.length > 0 && (
                 <>
-                    <TextInput
-                        style={[
-                            s.input,
-                            {
-                                marginHorizontal: space.screen,
-                            },
-                        ]}
-                        placeholder="Search name or brand"
-                        placeholderTextColor={color.placeholder}
-                        value={query}
-                        onChangeText={setQuery}
-                        accessibilityLabel="Search the larder"
-                        returnKeyType="search"
-                    />
+                    <View
+                        style={{
+                            marginHorizontal: space.screen,
+                            justifyContent: "center",
+                        }}
+                    >
+                        <TextInput
+                            style={[s.input, { paddingRight: 44 }]}
+                            placeholder="Search name or brand"
+                            placeholderTextColor={color.placeholder}
+                            value={query}
+                            onChangeText={setQuery}
+                            accessibilityLabel="Search the larder"
+                            returnKeyType="search"
+                        />
+                        <MaterialCommunityIcons
+                            name="magnify"
+                            size={22}
+                            color={color.placeholder}
+                            style={{
+                                position: "absolute",
+                                right: space.md,
+                                pointerEvents: "none",
+                            }}
+                        />
+                    </View>
                     <View>
                         <ScrollView
                             horizontal
