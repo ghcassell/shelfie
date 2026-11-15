@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Linking, Platform, ScrollView, Switch, Text, View } from 'react-native';
 import { db } from '../../db/client';
 import { useLarder } from '../../db/queries';
-import { addLocation, deleteLocation, renameLocation, setWarningDays } from '../../db/repositories';
+import { addLocation, deleteAllProducts, deleteLocation, renameLocation, setWarningDays } from '../../db/repositories';
 import { households, members } from '../../db/schema';
 import { sync, useSyncStatus } from '../../sync';
 import { Button, Field, IconButton, ListRow, s, ScreenHeader, Section, Sheet } from '../../ui/components';
@@ -27,9 +27,36 @@ export default function SettingsScreen() {
   const [newIgnore, setNewIgnore] = useState('');
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [message, setMessage] = useState('');
+  const [dangerMessage, setDangerMessage] = useState('');
 
   const changeDigest = (patch: Partial<typeof digest>) => { setDigest({ ...digest, ...patch }); setDigestSettings(patch); };
   const run = (action: () => Promise<unknown>) => action().catch(() => setMessage('That did not work. Try again.'));
+  const confirmDeleteAllProducts = () => alert(
+    'Warning',
+    'This will remove every product and batch for this Household on both phones.',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Continue',
+        style: 'destructive',
+        onPress: () => alert(
+          'Are you sure?',
+          'This cannot be undone.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete all products',
+              style: 'destructive',
+              onPress: () => {
+                deleteAllProducts();
+                setDangerMessage('All products were deleted.');
+              },
+            },
+          ],
+        ),
+      },
+    ],
+  );
   const syncText = status === 'syncing' ? 'Syncing…'
     : status === 'unavailable' ? 'Sync unavailable. Shelfie keeps working on this phone.'
     : lastSynced ? `Synced at ${pad(lastSynced.getHours())}:${pad(lastSynced.getMinutes())}` : 'Not synced yet';
@@ -95,6 +122,12 @@ export default function SettingsScreen() {
             onPress={() => run(async () => setMessage((await restoreFromFile()) ?? ''))}
           />
           {!!message && <Text style={s.error}>{message}</Text>}
+        </Section>
+
+        <Section title="Empty Larder">
+          <Text style={s.muted}>Removes every product and batch from this Household.</Text>
+          <Button label="Delete all products" kind="destructive" onPress={confirmDeleteAllProducts} />
+          {!!dangerMessage && <Text style={s.error}>{dangerMessage}</Text>}
         </Section>
 
         <Section title="Household and sync">

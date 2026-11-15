@@ -81,6 +81,16 @@ export function addProduct(input: ProductInput): string {
 export const updateProduct = (id: string, patch: Partial<ProductInput>) =>
   db.update(products).set({ ...patch, ...dirty() }).where(eq(products.id, id)).run();
 
+/** Testing reset: tombstones all Products and their Batches and receipt aliases in this Household. */
+export function deleteAllProducts() {
+  const deletedAt = nowIso();
+  db.transaction((tx) => {
+    tx.update(products).set({ deletedAt, ...dirty() }).where(isNull(products.deletedAt)).run();
+    tx.update(batches).set({ deletedAt, ...dirty() }).where(isNull(batches.deletedAt)).run();
+    tx.update(receiptAliases).set({ deletedAt, ...dirty() }).where(isNull(receiptAliases.deletedAt)).run();
+  });
+}
+
 // --- Batches -----------------------------------------------------------------------------
 
 export interface BatchInput {
