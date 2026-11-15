@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 import { useLarder } from '../../db/queries';
 import { undoEntry, updateProduct } from '../../db/repositories';
 import { canUndo, formatAmount } from '../../domain/amount';
@@ -51,6 +51,7 @@ export default function ProductScreen() {
           <Field label="Category" value={form.category} onChangeText={set('category')} />
           <Field label={unit === 'count' ? 'Items in one pack' : `Amount in one pack (${unit})`} value={form.packAmount} onChangeText={set('packAmount')} keyboardType="numeric" />
           {product.barcode && <Text style={s.muted}>Barcode {product.barcode}</Text>}
+          {product.barcode && <Button label="View on Open Food Facts" kind="secondary" onPress={() => Linking.openURL(`https://world.openfoodfacts.org/product/${encodeURIComponent(product.barcode!)}`)} />}
         </Section>
 
         <Section title="Dates">
