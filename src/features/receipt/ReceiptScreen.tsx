@@ -8,12 +8,13 @@ import { useLarder } from '../../db/queries';
 import { addBatch, addLocation, addProduct, saveAlias } from '../../db/repositories';
 import { db } from '../../db/client';
 import { receiptAliases } from '../../db/schema';
-import { guessUnit, linesFromAi, matchProduct, parseReceipt, type ReceiptLine, rowsFromOcr } from '../../domain/receipt';
+import { aliasKey, guessUnit, linesFromAi, matchProduct, parseReceipt, type ReceiptLine, rowsFromOcr } from '../../domain/receipt';
 import { improveReceipt } from '../../sync';
 import { BottomBar, Button, Chip, Field, IconButton, ListRow, s, ScreenHeader, Sheet } from '../../ui/components';
 import { color, space, TOUCH } from '../../ui/theme';
 import { TextCamera } from '../add/camera';
 import { deletePhoto } from '../add/DateEditor';
+import { addIgnored, getIgnored, removeIgnored } from './ignoreList';
 
 interface Line extends ReceiptLine { key: number; original: string; productId: string | null; price: string }
 
@@ -28,6 +29,7 @@ export default function ReceiptScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [added, setAdded] = useState<number | null>(null);
+  const [ignored, setIgnored] = useState(getIgnored);
   const photoRef = useRef<string | null>(null);
   photoRef.current = photo;
   // The photo never outlives this screen.
@@ -46,6 +48,14 @@ export default function ReceiptScreen() {
   };
   const patch = (key: number, change: Partial<Line>) => setLines((ls) => ls!.map((l) => (l.key === key ? { ...l, ...change } : l)));
 
+  /** "Always ignore" a line like PRICE REDUCTION: remembered for future receipts; tap again to undo. */
+  const toggleIgnore = (original: string) => {
+    const key = aliasKey(original);
+    const was = ignored.includes(key);
+    setIgnored(was ? removeIgnored(key) : addIgnored(key));
+    setLines((ls) => ls!.map((l) => (aliasKey(l.original) === key ? { ...l, ticked: was } : l)));
+  };
+
   const improve = async () => {
     if (!photo) return;
     setBusy(true);
@@ -56,7 +66,7 @@ export default function ReceiptScreen() {
       const file = new File(small.uri);
       const base64 = await file.base64();
       file.delete();
-      setLines(toLines(linesFromAi(await improveReceipt(base64))));
+      setLines(toLines(linesFromAi(await improveReceipt(base64), ignored)));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not improve this receipt.');
     } finally {
@@ -98,7 +108,7 @@ export default function ReceiptScreen() {
           <Text style={s.muted}>Lay the receipt flat and fit it in the frame. It is read on this phone; nothing is sent anywhere.</Text>
           <TextCamera
             tall label="Read receipt"
-            onText={({ lines: ocr }, path) => { setPhoto(path); setLines(toLines(parseReceipt(rowsFromOcr(ocr)))); }}
+            onText={({ lines: ocr }, path) => { setPhoto(path); setLines(toLines(parseReceipt(rowsFromOcr(ocr), ignored))); }}
           />
         </View>
       ) : (
@@ -134,7 +144,8 @@ export default function ReceiptScreen() {
                     <IconButton icon="minus-circle-outline" label="One fewer" tint={color.primary} onPress={() => patch(l.key, { quantity: Math.max(1, l.quantity - 1) })} />
                     <Text style={s.text} accessibilityLabel={`Quantity ${l.quantity}`}>{l.quantity}</Text>
                     <IconButton icon="plus-circle-outline" label="One more" tint={color.primary} onPress={() => patch(l.key, { quantity: l.quantity + 1 })} />
-                    <TextInput style={[s.input, { width: 88 }]} value={l.price} onChangeText={(price) => patch(l.key, { price })} keyboardType="numeric" placeholder="£" placeholderTextColor={color.inkMuted} accessibilityLabel="Price in pounds" />
+                    <TextInput style={[s.input, { width: 88 }]} value={l.price} onChangeText={(price) => patch(l.key, { price })} keyboardType="numeric" placeholder="£" placeholderTextColor={color.placeholder} accessibilityLabel="Price in pounds" />
+                    <Chip icon="eye-off-outline" label={ignored.includes(aliasKey(l.original)) ? 'Always ignored' : 'Always ignore'} selected={ignored.includes(aliasKey(l.original))} onPress={() => toggleIgnore(l.original)} />
                   </View>
                 </View>
               );

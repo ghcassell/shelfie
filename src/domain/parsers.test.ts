@@ -102,6 +102,11 @@ describe('receipt parser', () => {
       ['VISA DEBIT', 1, 602, false],
     ]);
   });
+  test('user ignore phrases match whole words', () => {
+    const lines = parseReceipt(['MEAL DEAL SAVER 3.50', 'RUMP STEAK 4.00', 'PG TEA 80S 2.00'], ['MEAL DEAL', 'TEA']);
+    expect(lines.map((l) => l.ticked)).toEqual([false, true, false]);
+    expect(parseReceipt(['PRICE REDUCTION 0.50'])[0].ticked).toBe(false); // built in
+  });
   test('trailing VAT letters and leading SKU codes', () => {
     expect(parseReceipt(['0123456 SS MILK 2L 1.65 A']).map((l) => [l.name, l.pricePence])).toEqual([['SS MILK 2L', 165]]);
   });

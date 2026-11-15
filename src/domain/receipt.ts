@@ -7,9 +7,13 @@ export interface ReceiptLine {
   ticked: boolean; // false for ignore-list lines
 }
 
-const IGNORE = /carrier|bag for life|\bbags?\b|discount|sub\s*-?total|\btotal\b|balance|loyalty|clubcard|nectar|points|change|\bcash\b|\bcard\b|visa|master\s*card|debit|credit|contactless|\bvat\b|saving|coupon|voucher|multibuy|price cut|deposit|rounding|\bdue\b|tender/i;
+const IGNORE = /carrier|bag for life|\bbags?\b|discount|sub\s*-?total|\btotal\b|balance|loyalty|clubcard|nectar|points|change|\bcash\b|\bcard\b|visa|master\s*card|debit|credit|contactless|\bvat\b|saving|coupon|voucher|multibuy|price cut|reduction|deposit|rounding|\bdue\b|tender/i;
 
-export const isIgnored = (name: string) => IGNORE.test(name);
+/** Built-in ignore list, plus the user's own phrases (stored as aliasKey; a line containing one is ignored). */
+export const isIgnored = (name: string, phrases: string[] = []) => {
+  const key = ` ${aliasKey(name)} `;
+  return IGNORE.test(name) || phrases.some((p) => key.includes(` ${p} `)); // whole words: "TEA" must not ignore "STEAK"
+};
 
 /** One OCR text line with its position, as ML Kit reports it. */
 export interface OcrLine { text: string; x: number; y: number; height: number }
@@ -29,7 +33,7 @@ export function rowsFromOcr(lines: OcrLine[]): string[] {
 const pence = (s: string) => Math.round(parseFloat(s) * 100);
 
 /** On-device parse: lines ending in a price are items; "2 x 1.50" style lines set the previous item's quantity. */
-export function parseReceipt(rows: string[]): ReceiptLine[] {
+export function parseReceipt(rows: string[], ignored: string[] = []): ReceiptLine[] {
   const out: ReceiptLine[] = [];
   for (const raw of rows) {
     const row = raw.replace(/\s+/g, ' ').trim();
@@ -40,13 +44,13 @@ export function parseReceipt(rows: string[]): ReceiptLine[] {
     if (!m) continue;
     const name = m[1].replace(/^\d{5,}\s+/, '').replace(/\s*£$/, '').trim(); // drop leading SKU codes
     const negative = /-/.test(row.slice(m[1].length));
-    out.push({ name, quantity: 1, pricePence: pence(m[2].replace(',', '.').replace('-', '')), ticked: !negative && !isIgnored(name) });
+    out.push({ name, quantity: 1, pricePence: pence(m[2].replace(',', '.').replace('-', '')), ticked: !negative && !isIgnored(name, ignored) });
   }
   return out;
 }
 
 /** Lines from the "Improve with AI" Edge Function, validated (it is outside input). */
-export function linesFromAi(json: unknown): ReceiptLine[] {
+export function linesFromAi(json: unknown, ignored: string[] = []): ReceiptLine[] {
   const items = (json as { items?: unknown })?.items;
   if (!Array.isArray(items)) throw new Error('Unexpected AI response');
   return items
@@ -54,7 +58,7 @@ export function linesFromAi(json: unknown): ReceiptLine[] {
     .map((i) => {
       const price = typeof i.price === 'number' && isFinite(i.price) ? Math.round(i.price * 100) : null;
       const quantity = typeof i.quantity === 'number' && i.quantity >= 1 ? Math.round(i.quantity) : 1;
-      return { name: i.name.trim(), quantity, pricePence: price, ticked: (price ?? 0) >= 0 && !isIgnored(i.name) };
+      return { name: i.name.trim(), quantity, pricePence: price, ticked: (price ?? 0) >= 0 && !isIgnored(i.name, ignored) };
     });
 }
 

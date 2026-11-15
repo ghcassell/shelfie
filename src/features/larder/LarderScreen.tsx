@@ -70,7 +70,7 @@ export default function LarderScreen() {
                             },
                         ]}
                         placeholder="Search name or brand"
-                        placeholderTextColor={color.inkMuted}
+                        placeholderTextColor={color.placeholder}
                         value={query}
                         onChangeText={setQuery}
                         accessibilityLabel="Search the larder"

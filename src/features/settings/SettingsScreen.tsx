@@ -11,6 +11,7 @@ import { sync, useSyncStatus } from '../../sync';
 import { Button, Field, IconButton, ListRow, s, ScreenHeader, Section, Sheet } from '../../ui/components';
 import { color, space } from '../../ui/theme';
 import { getDigestSettings, setDigestSettings } from './digest';
+import { addIgnored, getIgnored, removeIgnored } from '../receipt/ignoreList';
 import { exportCsv, exportJson, restoreFromFile } from './exportData';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -22,6 +23,8 @@ export default function SettingsScreen() {
   const { status, lastSynced } = useSyncStatus();
   const [digest, setDigest] = useState(getDigestSettings);
   const [newLocation, setNewLocation] = useState('');
+  const [ignored, setIgnored] = useState(getIgnored);
+  const [newIgnore, setNewIgnore] = useState('');
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [message, setMessage] = useState('');
 
@@ -72,6 +75,18 @@ export default function SettingsScreen() {
               onValueChange: (_e, d) => changeDigest({ hour: d.getHours(), minute: d.getMinutes() }),
             })}
           />
+        </Section>
+
+        <Section title="Receipt ignore list (this phone)">
+          <Text style={s.muted}>Receipt lines containing these words are left unticked. Totals, bags, discounts and payment lines are always ignored.</Text>
+          {ignored.map((p) => (
+            <ListRow
+              key={p} title={p}
+              right={<IconButton icon="trash-can-outline" label={`Stop ignoring ${p}`} tint={color.inkMuted} onPress={() => setIgnored(removeIgnored(p))} />}
+            />
+          ))}
+          <Field label="Ignore lines containing" value={newIgnore} onChangeText={setNewIgnore} placeholder="PRICE REDUCTION" autoCapitalize="characters" />
+          <Button label="Add to ignore list" kind="secondary" disabled={!newIgnore.trim()} onPress={() => { setIgnored(addIgnored(newIgnore)); setNewIgnore(''); }} />
         </Section>
 
         <Section title="Reports and export">

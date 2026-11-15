@@ -7,6 +7,7 @@ export const color = {
   tint: '#E1F5EE',
   ink: '#1d4038',
   inkMuted: '#5d7068',
+  placeholder: '#90a79e', // TextInput placeholder only; lighter than inkMuted
   line: '#dfe8e5',
   surface: '#fff',
   red: '#C62828',

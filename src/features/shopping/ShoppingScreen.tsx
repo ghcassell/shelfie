@@ -41,8 +41,8 @@ export default function ShoppingScreen() {
       />
       <View style={{ paddingHorizontal: space.screen, gap: space.sm, paddingBottom: space.sm }}>
         <View style={{ flexDirection: 'row', gap: space.sm }}>
-          <TextInput style={[s.input, { flex: 2 }]} placeholder="Add something" placeholderTextColor={color.inkMuted} value={name} onChangeText={setName} onSubmitEditing={() => add()} accessibilityLabel="Name" returnKeyType="done" />
-          <TextInput style={[s.input, { flex: 1 }]} placeholder="2 tins" placeholderTextColor={color.inkMuted} value={quantity} onChangeText={setQuantity} onSubmitEditing={() => add()} accessibilityLabel="Quantity, optional" />
+          <TextInput style={[s.input, { flex: 2 }]} placeholder="Add something" placeholderTextColor={color.placeholder} value={name} onChangeText={setName} onSubmitEditing={() => add()} accessibilityLabel="Name" returnKeyType="done" />
+          <TextInput style={[s.input, { flex: 1 }]} placeholder="2 tins" placeholderTextColor={color.placeholder} value={quantity} onChangeText={setQuantity} onSubmitEditing={() => add()} accessibilityLabel="Quantity, optional" />
           <IconButton icon="plus-circle" label="Add to the list" tint={color.primary} onPress={() => add()} />
         </View>
         {suggestions.length > 0 && (
