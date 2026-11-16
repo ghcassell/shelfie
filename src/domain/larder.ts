@@ -2,6 +2,9 @@ import { remaining } from './amount';
 import { compareUrgency, effectiveExpiry, urgency } from './expiry';
 import type { Batch, Day, Product, Urgency, UsageEntry } from './types';
 
+/** What a Batch with no Location is called: added without saying where it is kept. */
+export const TO_PUT_AWAY = 'To put away';
+
 export interface LarderRow<B extends Batch = Batch, P extends Product = Product> {
   batch: B;
   product: P;
@@ -36,7 +39,7 @@ export function buildRows<B extends Batch, P extends Product>(
     rows.push({
       batch,
       product,
-      locationName: locationById.get(batch.locationId) ?? '',
+      locationName: batch.locationId ? locationById.get(batch.locationId) ?? '' : TO_PUT_AWAY,
       remaining: remaining(batch, entriesByBatch.get(batch.id) ?? []),
       urgency: urgency(batch, product, warningDays, today),
       date: effectiveExpiry(batch, product)?.date ?? null,

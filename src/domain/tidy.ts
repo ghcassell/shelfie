@@ -7,7 +7,7 @@ const sortValue: Record<SortKey, (r: LarderRow) => string | number | null> = {
   brand: (r) => r.product.brand?.toLowerCase() || null,
   size: (r) => r.product.size?.toLowerCase() || null,
   category: (r) => r.product.category?.toLowerCase() || null,
-  location: (r) => r.locationName.toLowerCase(),
+  location: (r) => (r.batch.locationId ? r.locationName.toLowerCase() : null), // To put away counts as blank
   date: (r) => r.batch.expiryDate,
   price: (r) => r.batch.pricePence,
 };

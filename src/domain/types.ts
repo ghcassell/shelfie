@@ -34,7 +34,7 @@ export interface Product {
 export interface Batch {
   id: string;
   productId: string;
-  locationId: string;
+  locationId: string | null; // null = To put away: added without saying where it is kept
   startingAmount: number;
   packCount: number;
   expiryDate: Day | null; // null + !noExpiry = Needs a date

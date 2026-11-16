@@ -15,6 +15,13 @@
       "when": 1794776792482,
       "tag": "0001_location_order",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794837939048,
+      "tag": "0002_unplaced_batches",
+      "breakpoints": true
     }
   ]
 }

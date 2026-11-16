@@ -54,6 +54,10 @@
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
+    "android:dev:emu": "expo run:android --variant debug",
+    "android:dev:device": "expo run:android --variant debug --device",
+    "android:prod:emu": "expo run:android --variant release",
+    "android:prod:device": "expo run:android --variant release --device",
     "web": "expo start --web",
     "apk": "expo run:android --variant release",
     "test": "jest",

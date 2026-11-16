@@ -3,6 +3,7 @@ import { canUndo, countedEntries, formatAmount, packsRemaining, planSplit, remai
 import { addDays, addMonths, diffDays } from './dates';
 import { compareUrgency, digestText, effectiveExpiry, pillText, rowLabel, spokenStatus, urgency } from './expiry';
 import { buildBackup, checkBackup, toCsv } from './export';
+import { buildRows, TO_PUT_AWAY } from './larder';
 import { allowLookup, productFromOff } from './off';
 import { shoppingTrigger, totalStock } from './stock';
 import { parsePrice, sortRows } from './tidy';
@@ -231,6 +232,12 @@ describe('Emoji for a Product with no photo', () => {
     expect(emojiFor('Heinz Beanz', 'Canned foods')).toBe('🥫');
     expect(emojiFor('Mystery item', null)).toBe('🛒');
   });
+  test('"sweet" only counts when nothing else in the name matches', () => {
+    expect(emojiFor('Sweet potatoes')).toBe('🥔');
+    expect(emojiFor('Sweet peppers')).toBe('🫑');
+    expect(emojiFor('Sweet chilli sauce')).toBe('🌶️');
+    expect(emojiFor('Fizzy sweets')).toBe('🍬');
+  });
   test('things that are not food win over the food words in their names', () => {
     expect(emojiFor('Chicken in gravy cat food')).toBe('🐱');
     expect(emojiFor('Paracetamol 500mg tablets')).toBe('💊');
@@ -252,6 +259,14 @@ describe('tidy table', () => {
     expect(names(sortRows(rows, 'brand', true))).toEqual(['Apples', 'Cheese', 'beans']);
     expect(names(sortRows(rows, 'price', true))).toEqual(['Cheese', 'beans', 'Apples']);
     expect(names(rows)).toEqual(['beans', 'Apples', 'Cheese']); // the input is left alone
+  });
+  test('a Batch with no Location is To put away, and sorts last by location', () => {
+    const [placed, later] = buildRows(
+      [batch({ id: 'a' }), batch({ id: 'b', locationId: null })], [{ id: 'p1', name: 'Rice', ...product } as any],
+      [{ id: 'l1', name: 'Zebra shelf' }], [], 3, '2026-11-16',
+    );
+    expect([placed.locationName, later.locationName]).toEqual(['Zebra shelf', TO_PUT_AWAY]);
+    expect(sortRows([later, placed], 'location', false).map((r) => r.batch.id)).toEqual(['a', 'b']);
   });
   test('a typed price becomes pence, blank clears it, and nonsense is refused', () => {
     expect(parsePrice('1.50')).toBe(150);

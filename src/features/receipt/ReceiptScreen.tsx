@@ -6,6 +6,7 @@ import { useLarder } from '../../db/queries';
 import { addBatch, addLocation, addProduct, saveAlias } from '../../db/repositories';
 import { db } from '../../db/client';
 import { receiptAliases } from '../../db/schema';
+import { TO_PUT_AWAY } from '../../domain/larder';
 import { aliasKey, guessUnit, linesFromAi, matchProduct, parseReceipt, type ReceiptLine, rowsFromOcr } from '../../domain/receipt';
 import { improveReceipt } from '../../sync';
 import { BottomBar, Button, Chip, Field, IconButton, ListRow, s, ScreenHeader, Sheet } from '../../ui/components';
@@ -14,20 +15,20 @@ import { color, space, TOUCH } from '../../ui/theme';
 import { TextCamera } from '../add/camera';
 import { addIgnored, getIgnored, removeIgnored } from './ignoreList';
 
-interface Line extends ReceiptLine { key: number; original: string; productId: string | null; price: string; locationId: string | null }
+interface Line extends ReceiptLine { key: number; original: string; productId: string | null; price: string; locationId?: string | null } // locationId undefined: goes wherever "Adding to" says; null: put away later
 
 /** Capture, read on the phone, review one checklist, "Add ticked". No receipt record is kept. */
 export default function ReceiptScreen() {
   const { products, locations } = useLarder();
   const [photo, setPhoto] = useState<string | null>(null);
   const [lines, setLines] = useState<Line[] | null>(null);
-  const [locationId, setLocationId] = useState<string | null>(null);
+  const [locationId, setLocationId] = useState<string | null>(null); // null: put away later, the default after a big shop
   const [newLocation, setNewLocation] = useState('');
   const [choosing, setChoosing] = useState<number | null>(null);
   const [placing, setPlacing] = useState<number | null>(null); // the line whose own Location is being picked
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [added, setAdded] = useState<number | null>(null);
+  const [added, setAdded] = useState<{ count: number; later: number } | null>(null);
   const [ignored, setIgnored] = useState(getIgnored);
   const photoRef = useRef<string | null>(null);
   photoRef.current = photo;
@@ -39,7 +40,7 @@ export default function ReceiptScreen() {
     return parsed.map((l, key) => {
       const productId = matchProduct(l.name, products, aliases);
       return {
-        ...l, key, original: l.name, productId, locationId: null, // null: goes wherever "Adding to" says
+        ...l, key, original: l.name, productId,
         name: products.find((p) => p.id === productId)?.name ?? l.name, // show the linked Product, not the shop's abbreviation
         price: l.pricePence == null ? '' : (l.pricePence / 100).toFixed(2),
       };
@@ -73,11 +74,10 @@ export default function ReceiptScreen() {
 
   const addTicked = () => {
     if (!lines) return;
-    let count = 0;
+    let count = 0, later = 0;
     const created = new Map<string, string>(); // the same new item twice on one receipt is one Product
     for (const l of lines.filter((x) => x.ticked && x.name.trim())) {
-      const lineLocation = l.locationId ?? locationId;
-      if (!lineLocation) continue;
+      const lineLocation = l.locationId === undefined ? locationId : l.locationId;
       const existing = products.find((p) => p.id === l.productId);
       const guess = guessUnit(l.name);
       const name = l.name.trim();
@@ -91,10 +91,11 @@ export default function ReceiptScreen() {
         expiryDate: null, noExpiry: false, dateKind: 'best_before', pricePence: isFinite(pence) ? pence : null,
       });
       count++;
+      if (!lineLocation) later++;
     }
     if (photo) deletePhoto(photo);
     setPhoto(null);
-    setAdded(count);
+    setAdded({ count, later });
   };
 
   const choosingLine = lines?.find((l) => l.key === choosing);
@@ -119,6 +120,7 @@ export default function ReceiptScreen() {
           <ScrollView contentContainerStyle={[s.body, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
             <Text style={s.label}>Adding to (tap an item’s location to change just that one)</Text>
             <View style={s.chipRow}>
+              <Chip warn label="Put away later" selected={locationId === null} onPress={() => setLocationId(null)} />
               {locations.map((l) => <Chip key={l.id} label={l.name} selected={l.id === locationId} onPress={() => setLocationId(l.id)} />)}
             </View>
             {locations.length === 0 && (
@@ -131,6 +133,7 @@ export default function ReceiptScreen() {
             {lines.length === 0 && <Text style={s.muted}>No lines with a price were found. Try "Improve with AI", or go back and retake the photo.</Text>}
             {lines.map((l) => {
               const product = products.find((p) => p.id === l.productId);
+              const place = l.locationId === undefined ? locationId : l.locationId;
               return (
                 <View key={l.key} style={{ gap: space.sm, paddingVertical: space.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.brand, opacity: l.ticked ? 1 : 0.55 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
@@ -144,7 +147,7 @@ export default function ReceiptScreen() {
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap', paddingLeft: TOUCH + space.sm }}>
                     <Chip icon={product ? 'link-variant' : 'plus'} label={product ? product.name : 'New Product'} onPress={() => setChoosing(l.key)} />
-                    <Chip icon="map-marker" label={locations.find((x) => x.id === (l.locationId ?? locationId))?.name ?? 'Location'} selected={!!l.locationId} onPress={() => setPlacing(l.key)} />
+                    <Chip icon="map-marker" warn={!place} label={locations.find((x) => x.id === place)?.name ?? 'Put away later'} selected={l.locationId !== undefined} onPress={() => setPlacing(l.key)} />
                     {/* One block, so the stepper never wraps apart. */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                       <IconButton icon="minus" ring label="One fewer" tint={color.primary} size={40} disabled={l.quantity <= 1} onPress={() => patch(l.key, { quantity: Math.max(1, l.quantity - 1) })} />
@@ -168,7 +171,7 @@ export default function ReceiptScreen() {
           <BottomBar paddingBottom={space.lg}>
             <Button label="Retake" kind="secondary" onPress={() => { if (photo) deletePhoto(photo); setPhoto(null); setLines(null); }} />
             <View style={{ flex: 1 }} />
-            <Button label={`Add ticked (${lines.filter((l) => l.ticked).length})`} onPress={addTicked} disabled={!lines.some((l) => l.ticked) || lines.some((l) => l.ticked && !(l.locationId ?? locationId))} />
+            <Button label={`Add ticked (${lines.filter((l) => l.ticked).length})`} onPress={addTicked} disabled={!lines.some((l) => l.ticked)} />
           </BottomBar>
         </>
       )}
@@ -181,13 +184,16 @@ export default function ReceiptScreen() {
       </Sheet>
 
       <Sheet visible={placing != null} onClose={() => setPlacing(null)} title="Keep this one in">
+        <ListRow title="Put away later" onPress={() => { patch(placing!, { locationId: null }); setPlacing(null); }} />
         {locations.map((x) => (
           <ListRow key={x.id} title={x.name} onPress={() => { patch(placing!, { locationId: x.id }); setPlacing(null); }} />
         ))}
       </Sheet>
 
       <Sheet visible={added != null} onClose={() => router.back()} title="Added">
-        <Text style={s.text}>Added {added} {added === 1 ? 'Batch' : 'Batches'}. They need a date: scan each pack when you put it away.</Text>
+        <Text style={s.text}>
+          Added {added?.count} {added?.count === 1 ? 'Batch' : 'Batches'}{added?.later ? `, ${added.later} ${TO_PUT_AWAY.toLowerCase()}` : ''}. They need a date: scan each pack when you put it away.
+        </Text>
         <Button label="Fill in dates" onPress={() => router.replace('/fill-dates')} />
         <Button label="Done" kind="secondary" onPress={() => router.back()} />
       </Sheet>

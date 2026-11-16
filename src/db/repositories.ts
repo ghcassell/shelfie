@@ -130,7 +130,7 @@ export function deleteAllProducts() {
 
 export interface BatchInput {
   productId: string;
-  locationId: string;
+  locationId: string | null; // null: To put away
   startingAmount: number;
   packCount: number;
   expiryDate: string | null;

@@ -132,9 +132,9 @@ export default function TidyScreen() {
                   {td(<Cell label="Size" value={product.size ?? ''} onSave={(size) => updateProduct(product.id, { size: size || null })} />, { width: 90 })}
                   {td(<Cell label="Category" value={product.category ?? ''} onSave={(category) => updateProduct(product.id, { category: category || null })} />, { minWidth: 130 })}
                   {td(
-                    <select style={st.input} aria-label="Location" value={batch.locationId} onChange={(e) => updateBatch(batch.id, { locationId: e.target.value })}>
-                      {/* A Batch can still sit in a deleted Location: keep showing it until it is moved. */}
-                      {!locations.some((l) => l.id === batch.locationId) && <option value={batch.locationId}>{r.locationName}</option>}
+                    <select style={st.input} aria-label="Location" value={batch.locationId ?? ''} onChange={(e) => updateBatch(batch.id, { locationId: e.target.value })}>
+                      {/* A Batch can be To put away, or still sit in a deleted Location: keep showing that until it is moved. */}
+                      {!locations.some((l) => l.id === batch.locationId) && <option value={batch.locationId ?? ''}>{r.locationName}</option>}
                       {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>,
                   )}

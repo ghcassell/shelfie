@@ -79,14 +79,16 @@ export function Button({ label, onPress, kind = 'primary', icon, disabled, style
   );
 }
 
-export function Chip({ label, selected, onPress, icon, big }: { label: string; big?: boolean; selected?: boolean; onPress?: () => void; icon?: IconName }) {
+/** `warn` is the orange chip for To put away; the label carries the meaning too, never colour alone. */
+export function Chip({ label, selected, onPress, icon, big, warn }: { label: string; big?: boolean; selected?: boolean; warn?: boolean; onPress?: () => void; icon?: IconName }) {
+  const ink = selected ? '#fff' : warn ? color.orange : color.ink;
   return (
     <Pressable
       onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!selected }}
-      style={[s.chip, selected && s.chipSelected]} hitSlop={{ top: 8, bottom: 8 }}
+      style={[s.chip, selected && s.chipSelected, warn && { borderColor: color.orange }, warn && selected && { backgroundColor: color.orange }]} hitSlop={{ top: 8, bottom: 8 }}
     >
-      {icon && <MaterialCommunityIcons name={icon} size={16} color={selected ? '#fff' : color.ink} />}
-      <Text style={[s.chipText, selected && { color: '#fff' }, big && { fontSize: font.lg }]}>{label}</Text>
+      {icon && <MaterialCommunityIcons name={icon} size={16} color={ink} />}
+      <Text style={[s.chipText, { color: ink }, big && { fontSize: font.lg }]}>{label}</Text>
     </Pressable>
   );
 }

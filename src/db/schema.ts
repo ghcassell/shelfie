@@ -55,7 +55,7 @@ export const products = sqliteTable('products', {
 export const batches = sqliteTable('batches', {
   ...synced,
   productId: text('product_id').notNull(),
-  locationId: text('location_id').notNull(),
+  locationId: text('location_id'), // null: not put away yet
   startingAmount: real('starting_amount').notNull(),
   packCount: integer('pack_count').notNull().default(1),
   expiryDate: text('expiry_date'),

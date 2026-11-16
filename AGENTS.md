@@ -23,6 +23,19 @@ npx expo install --fix      # fix incompatible package versions
 
 Run lint and typecheck before declaring any task done.
 
+### Installing on emulator/device (dev vs prod)
+
+Use these npm scripts instead of raw `expo run:android` flags — they map directly to "install dev/prod on emulator/USB device" requests:
+
+| Request | Script |
+|---|---|
+| dev app, emulator | `npm run android:dev:emu` |
+| dev app, USB device | `npm run android:dev:device` |
+| prod app, emulator | `npm run android:prod:emu` |
+| prod app, USB device | `npm run android:prod:device` |
+
+Installing one variant does not remove the other. Don't construct `expo run:android` commands by hand for this — use the matching script.
+
 ## Navigation & Routing
 
 - Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.

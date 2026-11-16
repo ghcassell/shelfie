@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { useLarder } from '../../db/queries';
 import { addBatch, addLocation, addProduct, bumpPackCount, findProductByBarcode, updateProduct } from '../../db/repositories';
 import { formatAmount } from '../../domain/amount';
+import { TO_PUT_AWAY } from '../../domain/larder';
 import { guessUnit } from '../../domain/receipt';
 import type { BaseUnit } from '../../domain/types';
 import { Button, Chip, Field, IconButton, s, Sheet, WizardStep } from '../../ui/components';
@@ -34,7 +35,7 @@ export default function AddWizard() {
   const [typed, setTyped] = useState('');
   const [packs, setPacks] = useState(1);
   const [price, setPrice] = useState('');
-  const [locationId, setLocationId] = useState<string | null>(null);
+  const [locationId, setLocationId] = useState<string | null | undefined>(undefined); // undefined: not chosen yet; null: put away later
   const [newLocation, setNewLocation] = useState('');
   const [date, setDate] = useState<DateChoice>(NEEDS_DATE);
   const [last, setLast] = useState<{ batchId: string; productId: string; date: DateChoice } | null>(null);
@@ -43,7 +44,7 @@ export default function AddWizard() {
   const [summary, setSummary] = useState(false);
 
   const packAmount = Math.max(parseFloat(draft.packAmount.replace(',', '.')) || 1, 0.01);
-  const location = locations.find((l) => l.id === locationId);
+  const location = locationId === null ? { name: TO_PUT_AWAY } : locations.find((l) => l.id === locationId);
   // In "Add several", Location carries over, so a scan goes straight to the date.
   const afterProduct = (): Step => (several && location ? 'date' : 'quantity');
   const quick = several && !productId && !!barcode; // unknown barcode: name-only quick create
@@ -92,7 +93,7 @@ export default function AddWizard() {
   };
 
   const save = (scanNext: boolean) => {
-    if (!productId || !locationId) return;
+    if (!productId || locationId === undefined) return;
     const sameAsLast = several && !!barcode && last?.productId === productId &&
       last.date.expiryDate === date.expiryDate && last.date.noExpiry === date.noExpiry;
     if (sameAsLast) bumpPackCount(last.batchId, packAmount, packs);
@@ -134,7 +135,7 @@ export default function AddWizard() {
     <>
       {step === 'scan' && (
         <WizardStep {...common}>
-          {several && location && <Chip icon="map-marker" label={`Adding to: ${location.name}`} onPress={() => setStep('location')} />}
+          {several && location && <Chip icon="map-marker" warn={locationId === null} label={`Adding to: ${location.name}`} onPress={() => setStep('location')} />}
           <BarcodeCamera onScan={onScan} />
           {looking && <Text style={s.muted}>Looking it up…</Text>}
           {!!note && <Text style={s.muted}>{note}</Text>}
@@ -187,6 +188,7 @@ export default function AddWizard() {
         <WizardStep {...common} onNext={() => setStep('date')} nextDisabled={!location}>
           <View style={s.chipRow}>
             {locations.map((l) => <Chip key={l.id} label={l.name} selected={l.id === locationId} onPress={() => setLocationId(l.id)} />)}
+            <Chip warn label="Put away later" selected={locationId === null} onPress={() => setLocationId(null)} />
           </View>
           <Field label="New location" value={newLocation} onChangeText={setNewLocation} placeholder="Fridge, freezer, cupboard…" />
           <Button label="Add location" kind="secondary" disabled={!newLocation.trim()} onPress={() => { setLocationId(addLocation(newLocation)); setNewLocation(''); }} />
@@ -197,7 +199,7 @@ export default function AddWizard() {
         <WizardStep {...common} onNext={() => save(false)} nextLabel="Save" onSaveNext={() => save(true)} nextDisabled={!productId || !location}>
           <Text style={s.text}>{draft.name}</Text>
           <View style={s.chipRow}>
-            {location && <Chip icon="map-marker" label={`Adding to: ${location.name}`} onPress={() => setStep('location')} />}
+            {location && <Chip icon="map-marker" warn={locationId === null} label={`Adding to: ${location.name}`} onPress={() => setStep('location')} />}
             <Chip icon="package-variant" label={`${packs} ${packs === 1 ? 'pack' : 'packs'}`} onPress={() => setStep('quantity')} />
           </View>
           {/* key: a fresh editor (and camera) for every Batch */}

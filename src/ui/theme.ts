@@ -12,6 +12,7 @@ export const color = {
   surface: '#fff',
   red: '#C62828',
   amber: '#F5B335',
+  orange: '#B4510A', // To put away: chip outline and text (AA on white, and with white text)
 } as const;
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, screen: 16 } as const;

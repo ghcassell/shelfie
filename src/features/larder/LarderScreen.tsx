@@ -10,7 +10,7 @@ import {
     View,
 } from "react-native";
 import { useLarder } from "../../db/queries";
-import { matchesSearch } from "../../domain/larder";
+import { matchesSearch, TO_PUT_AWAY } from "../../domain/larder";
 import { sync, useSyncStatus } from "../../sync";
 import {
     Banner,
@@ -29,14 +29,16 @@ export default function LarderScreen() {
     const { larder, attention, locations, today } = useLarder();
     const { status } = useSyncStatus();
     const [query, setQuery] = useState("");
-    const [locationId, setLocationId] = useState<string | null>(null);
+    const [locationId, setLocationId] = useState<string | null>(null); // a Location id, or TO_PUT_AWAY
+    const toPutAway = larder.filter((r) => !r.batch.locationId).length;
     const [openedOnly, setOpenedOnly] = useState(false);
     const [adding, setAdding] = useState(false);
 
     const rows = larder.filter(
         (r) =>
             matchesSearch(r, query) &&
-            (!locationId || r.batch.locationId === locationId) &&
+            (!locationId ||
+                (r.batch.locationId ?? TO_PUT_AWAY) === locationId) &&
             (!openedOnly || !!r.batch.openedOn),
     );
     const filtered = !!query || !!locationId || openedOnly;
@@ -113,6 +115,20 @@ export default function LarderScreen() {
                                 selected={openedOnly}
                                 onPress={() => setOpenedOnly(!openedOnly)}
                             />
+                            {(toPutAway > 0 || locationId === TO_PUT_AWAY) && (
+                                <Chip
+                                    warn
+                                    label={`${TO_PUT_AWAY} (${toPutAway})`}
+                                    selected={locationId === TO_PUT_AWAY}
+                                    onPress={() =>
+                                        setLocationId(
+                                            locationId === TO_PUT_AWAY
+                                                ? null
+                                                : TO_PUT_AWAY,
+                                        )
+                                    }
+                                />
+                            )}
                             {locations.map((l) => (
                                 <Chip
                                     key={l.id}

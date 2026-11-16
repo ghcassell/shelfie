@@ -4,7 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useLarder } from '../../db/queries';
 import { updateBatch } from '../../db/repositories';
 import { formatAmount } from '../../domain/amount';
-import { Button, EmptyState, ProductTile, s, ScreenHeader } from '../../ui/components';
+import { Button, Chip, EmptyState, ProductTile, s, ScreenHeader } from '../../ui/components';
 import { space } from '../../ui/theme';
 import { ensureNotificationPermission } from '../settings/digest';
 import { gtinFromScan } from '../../domain/off';
@@ -14,7 +14,7 @@ import { scanToLink } from './off';
 
 /** Walks through Batches that need a date. Scanning a pack's barcode jumps to its Batch. */
 export default function FillDatesScreen() {
-  const { larder } = useLarder();
+  const { larder, locations } = useLarder();
   const undated = larder.filter((r) => r.urgency === 'needs_date');
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [date, setDate] = useState<DateChoice>(NEEDS_DATE);
@@ -74,6 +74,14 @@ export default function FillDatesScreen() {
           <>
             <Button label={row.product.barcode ? 'Scan a pack to jump to it' : 'Scan this pack for its photo and details'} icon="barcode-scan" kind="secondary" onPress={() => setScanning(true)} />
             {!!note && <Text style={s.muted}>{note}</Text>}
+            {!row.batch.locationId && locations.length > 0 && (
+              <>
+                <Text style={s.label}>Where are you putting it?</Text>
+                <View style={s.chipRow}>
+                  {locations.map((l) => <Chip key={l.id} label={l.name} onPress={() => updateBatch(row.batch.id, { locationId: l.id })} />)}
+                </View>
+              </>
+            )}
             <DateEditor key={row.batch.id} value={date} onChange={setDate} />
             <View style={s.chipRow}>
               <Button label="Save date" onPress={save} disabled={!date.expiryDate && !date.noExpiry} style={{ flex: 1 }} />

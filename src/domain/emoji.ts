@@ -33,7 +33,7 @@ const EMOJI: [string, string][] = [
   ['🍫', 'chocolate|cocoa'],
   ['🍪', 'biscuit|cookie|cracker'],
   ['🍰', 'cake|muffin|brownie|dessert'],
-  ['🍬', 'sweet|candy|candies'],
+  ['🍬', 'candy|candies'],
   ['🥐', 'croissant'],
   ['🍞', 'bread|loaf|loaves|bagel|roll|wrap|pitta|crumpet'],
   ['🍝', 'pasta|spaghetti|penne|fusilli|macaroni|lasagne|noodle'],
@@ -84,6 +84,8 @@ const EMOJI: [string, string][] = [
   ['💧', 'water'],
   ['🥤', 'cola|lemonade|soda|drink|beverage'],
   ['🍼', 'baby'],
+  // Last on purpose: "sweet" is usually an adjective (sweet potato, sweet pepper), so any other word in the name wins.
+  ['🍬', 'sweet'],
 ];
 const RULES = EMOJI.map(([emoji, words]) => [emoji, new RegExp(`\\b(${words})(s|es)?\\b`, 'i')] as const);
 
