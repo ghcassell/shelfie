@@ -6,16 +6,20 @@ import { formatAmount } from '../../domain/amount';
 import { formatDay } from '../../domain/dates';
 import { pillText, rowLabel, spokenStatus } from '../../domain/expiry';
 import { Button, ListRow, ProductTile, StatusPill } from '../../ui/components';
-import { alert } from '../../ui/platform';
+import { showDialog } from '../../ui/Dialog';
 import { edgeColor, space } from '../../ui/theme';
 
 /** "Add to shopping list?" when the last Batch of a Product with no threshold finishes. */
 export function offerShopping(result: 'prompt' | null, product: { id: string; name: string }) {
   if (result !== 'prompt') return;
-  alert('Add to shopping list?', `That was the last of the ${product.name}.`, [
-    { text: 'No', style: 'cancel' },
-    { text: 'Add', onPress: () => addShoppingEntry(product.name, product.id) },
-  ]);
+  showDialog({
+    title: 'Add to shopping list?',
+    message: `That was the last of the ${product.name}.`,
+    buttons: [
+      { label: 'No' },
+      { label: 'Add', variant: 'primary', onPress: () => addShoppingEntry(product.name, product.id) },
+    ],
+  });
 }
 
 /** One Batch in the Larder or Needs attention list. */

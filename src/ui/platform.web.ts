@@ -1,14 +1,4 @@
 // Browser versions of platform.ts. Keep the exports in step with it: TypeScript only checks the native file.
-import type { AlertButton } from 'react-native';
-
-/** react-native-web's Alert does nothing, so the browser's own dialogs stand in: one action button plus Cancel. */
-export function alert(title: string, message?: string, buttons?: AlertButton[]) {
-  const text = [title, message].filter(Boolean).join('\n\n');
-  const action = buttons?.find((b) => b.style !== 'cancel' && b.onPress);
-  if (!action) window.alert(text);
-  else if (window.confirm(text)) action.onPress!();
-}
-
 /** The browser's own store: a second SQLite database (the kv-store) fails to open beside the app's on web. */
 export const kv = {
   getItemSync: (key: string) => localStorage.getItem(key),

@@ -8,6 +8,7 @@ import { formatAmount } from '../../domain/amount';
 import { pillText } from '../../domain/expiry';
 import { matchesSearch } from '../../domain/larder';
 import { parsePrice, type SortKey, sortRows } from '../../domain/tidy';
+import { showDialog } from '../../ui/Dialog';
 import { color, edgeColor, font, radius, space } from '../../ui/theme';
 
 /** A cell that saves when you leave it or press Enter; Escape puts the old value back. */
@@ -43,6 +44,7 @@ export default function TidyScreen() {
   const rows = sort ? sortRows(found, sort.key, sort.descending) : found;
   const selected = rows.filter((r) => picked.has(r.batch.id)); // a Batch that has gone, or is filtered out, is never acted on
   const allPicked = rows.length > 0 && selected.length === rows.length;
+  const count = `${selected.length} ${selected.length === 1 ? 'Batch' : 'Batches'}`;
 
   const toggle = (id: string) => setPicked((old) => { const next = new Set(old); if (!next.delete(id)) next.add(id); return next; });
   const each = (change: (r: Row) => void) => { selected.forEach(change); setPicked(new Set()); };
@@ -87,12 +89,21 @@ export default function TidyScreen() {
           <input type="date" style={{ ...st.input, ...st.boxed, width: 'auto' }} aria-label="Date for the selected Batches" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} />
           {bulk('Set date', () => each((r) => updateBatch(r.batch.id, { expiryDate: bulkDate, noExpiry: false })), undefined, !bulkDate)}
           {bulk('No expiry', () => each((r) => updateBatch(r.batch.id, { expiryDate: null, noExpiry: true })))}
-          {bulk('Used up', () => {
-            if (window.confirm(`Record ${selected.length} ${selected.length === 1 ? 'Batch' : 'Batches'} as used up?`)) each((r) => { addUsage(r.batch, 'used', r.remaining); });
-          })}
-          {bulk('Delete (added by mistake)', () => {
-            if (window.confirm(`Delete ${selected.length} ${selected.length === 1 ? 'Batch' : 'Batches'}? Only for things added by mistake: use "Used up" for food that has been eaten.`)) each((r) => deleteBatch(r.batch.id));
-          }, { color: color.red, borderColor: color.red })}
+          {bulk('Used up', () => showDialog({
+            title: `Record ${count} as used up?`,
+            buttons: [
+              { label: 'Cancel' },
+              { label: 'Used up', variant: 'primary', onPress: () => each((r) => { addUsage(r.batch, 'used', r.remaining); }) },
+            ],
+          }))}
+          {bulk('Delete (added by mistake)', () => showDialog({
+            title: `Delete ${count}?`,
+            message: 'Only for things added by mistake: use "Used up" for food that has been eaten.',
+            buttons: [
+              { label: 'Cancel' },
+              { label: 'Delete', variant: 'destructive', onPress: () => each((r) => deleteBatch(r.batch.id)) },
+            ],
+          }), { color: color.red, borderColor: color.red })}
           {bulk('Clear selection', () => setPicked(new Set()))}
         </div>
       )}

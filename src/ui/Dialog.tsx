@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { color, font, radius, space } from './theme';
 
@@ -68,6 +68,29 @@ export default function Dialog({ visible, onDismiss, title, message, children, b
         </View>
       </View>
     </Modal>
+  );
+}
+
+type DialogRequest = { title: string; message?: string; buttons?: DialogButton[] };
+let present: (request: DialogRequest) => void = () => {};
+
+/**
+ * A Dialog from anywhere, shown by the one DialogHost in the root layout; any button closes it.
+ * For prompts that must outlive their caller (a row that disappears, a screen that goes back).
+ */
+export const showDialog = (request: DialogRequest) => present(request);
+
+export function DialogHost() {
+  // The request stays after closing so the text does not blank during the fade out.
+  const [request, setRequest] = useState<DialogRequest | null>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { present = (r) => { setRequest(r); setVisible(true); }; }, []);
+  const close = () => setVisible(false);
+  return (
+    <Dialog
+      visible={visible} onDismiss={close} title={request?.title ?? ''} message={request?.message}
+      buttons={request?.buttons?.map((b) => ({ ...b, onPress: () => { close(); b.onPress?.(); } }))}
+    />
   );
 }
 

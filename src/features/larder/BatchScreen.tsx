@@ -10,7 +10,7 @@ import { WASTE_REASONS, type WasteReason } from '../../domain/types';
 import { formatPence } from '../../domain/waste';
 import Toast from 'react-native-toast-message';
 import { Button, Chip, Field, ListRow, ProductTile, QuantityPicker, s, ScreenHeader, Section, Sheet, StatusPill } from '../../ui/components';
-import { alert } from '../../ui/platform';
+import { showDialog } from '../../ui/Dialog';
 import { space } from '../../ui/theme';
 import { type DateChoice, DateEditor } from '../add/DateEditor';
 import { ensureNotificationPermission } from '../settings/digest';
@@ -120,10 +120,14 @@ export default function BatchScreen() {
 
         <Button
           label="Delete (added by mistake)" kind="destructive"
-          onPress={() => alert('Delete this Batch?', 'Only for something added by mistake. To record it as eaten or thrown away, use the buttons above.', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', style: 'destructive', onPress: () => { deleteBatch(batch.id); router.back(); } },
-          ])}
+          onPress={() => showDialog({
+            title: 'Delete this Batch?',
+            message: 'Only for something added by mistake. To record it as eaten or thrown away, use the buttons above.',
+            buttons: [
+              { label: 'Cancel' },
+              { label: 'Delete', variant: 'destructive', onPress: () => { deleteBatch(batch.id); router.back(); } },
+            ],
+          })}
         />
       </ScrollView>
 

@@ -13,6 +13,7 @@ import { rescheduleDigest, useDigestTap } from '../features/settings/digest';
 import SignInScreen from '../features/settings/SignInScreen';
 import { onAfterSync, startSyncTriggers } from '../sync';
 import { s } from '../ui/components';
+import { DialogHost } from '../ui/Dialog';
 import { toastConfig } from '../ui/Toast';
 import { color } from '../ui/theme';
 
@@ -61,6 +62,7 @@ function App() {
         </Stack>
       ) : <SignInScreen />}
       <Toast config={toastConfig} position="bottom" bottomOffset={TAB_BAR_HEIGHT + insets.bottom + 8} />
+      <DialogHost />
     </KeyboardAvoidingView>
   );
 }

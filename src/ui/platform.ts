@@ -4,12 +4,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as Sharing from 'expo-sharing';
-import { Alert, type AlertButton } from 'react-native';
 
 /** Small per-device settings that never sync. */
 export { default as kv } from 'expo-sqlite/kv-store';
-
-export const alert = (title: string, message?: string, buttons?: AlertButton[]) => Alert.alert(title, message, buttons);
 
 export const pickDateTime = (mode: 'date' | 'time', value: Date, onChange: (picked: Date) => void) =>
   DateTimePickerAndroid.open({ value, mode, is24Hour: true, onValueChange: (_e, d) => onChange(d) });
