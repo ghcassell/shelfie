@@ -54,8 +54,8 @@
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
-    "android:dev:emu": "expo run:android --variant debug",
-    "android:dev:device": "expo run:android --variant debug --device",
+    "android:dev:emu": "expo run:android --variant debug --app-id com.shelfie.app.dev",
+    "android:dev:device": "expo run:android --variant debug --app-id com.shelfie.app.dev --device",
     "android:prod:emu": "expo run:android --variant release --no-bundler",
     "android:prod:device": "expo run:android --variant release --device --no-bundler",
     "web": "expo start --web",

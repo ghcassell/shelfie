@@ -46,7 +46,8 @@
           "barcodeScanning": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      "./plugins/withDevVariant"
     ]
   }
 }
