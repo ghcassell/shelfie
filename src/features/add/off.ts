@@ -1,4 +1,5 @@
-import { allowLookup, productFromOff, type ProductDraft } from '../../domain/off';
+import { findProductByBarcode, linkBarcode } from '../../db/repositories';
+import { allowLookup, gtinFromScan, productFromOff, type ProductDraft } from '../../domain/off';
 
 // Open Food Facts asks for "AppName/Version (ContactEmail)". The contact comes from .env, never hard-coded.
 const USER_AGENT = `Shelfie/1.0 (${process.env.EXPO_PUBLIC_OFF_CONTACT || 'private household app'})`;
@@ -21,4 +22,20 @@ export async function lookupBarcode(barcode: string): Promise<ProductDraft | 'no
   } catch {
     return 'offline';
   }
+}
+
+/** Scan a pack to give a barcode-less Product its barcode, photo and details. Returns what to tell the user. */
+export async function scanToLink(productId: string, raw: string): Promise<string> {
+  const code = gtinFromScan(raw);
+  if (!code) return 'No product number in that code. Try the striped barcode.';
+  const owner = findProductByBarcode(code);
+  if (owner) return `That barcode already belongs to ${owner.name}.`;
+  const found = await lookupBarcode(code);
+  if (found === 'offline') return 'Could not look that up just now. Try again when you are online.';
+  if (found === 'not_found') {
+    linkBarcode(productId, code);
+    return 'Barcode saved. Not in Open Food Facts yet, so no photo or details.';
+  }
+  linkBarcode(productId, code, found);
+  return `Linked to ${found.name}.`;
 }

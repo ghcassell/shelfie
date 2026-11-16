@@ -4,6 +4,7 @@ import { canUndo, planSplit, remaining, reversalOf } from '../domain/amount';
 import { toDay } from '../domain/dates';
 import type { BackupData } from '../domain/export';
 import { buildRows, type LarderRow } from '../domain/larder';
+import type { ProductDraft } from '../domain/off';
 import { aliasKey } from '../domain/receipt';
 import { shoppingTrigger, type StockLine } from '../domain/stock';
 import type { WasteReason } from '../domain/types';
@@ -98,6 +99,22 @@ export function addProduct(input: ProductInput): string {
 
 export const updateProduct = (id: string, patch: Partial<ProductInput>) =>
   db.update(products).set({ ...patch, ...dirty() }).where(eq(products.id, id)).run();
+
+/**
+ * A Product with no barcode (a receipt made it) gets its barcode and, when Open Food Facts knows it, the photo and details.
+ * Base unit and pack amount change only while nothing has been used: its Batches are then re-sized to match.
+ */
+export function linkBarcode(id: string, barcode: string, found?: ProductDraft) {
+  if (!found) return void updateProduct(id, { barcode });
+  const { baseUnit, packAmount, ...details } = found;
+  const filled = Object.fromEntries(Object.entries(details).filter(([, v]) => v != null)); // never blank what is already there
+  const own = db.select().from(batches).where(eq(batches.productId, id)).all();
+  const used = db.select().from(usageEntries).all().some((e) => own.some((b) => b.id === e.batchId));
+  db.transaction((tx) => {
+    tx.update(products).set({ ...filled, barcode, ...(used ? {} : { baseUnit, packAmount }), ...dirty() }).where(eq(products.id, id)).run();
+    if (!used) for (const b of own) tx.update(batches).set({ startingAmount: b.packCount * packAmount, ...dirty() }).where(eq(batches.id, b.id)).run();
+  });
+}
 
 /** Testing reset: tombstones all Products and their Batches and receipt aliases in this Household. */
 export function deleteAllProducts() {

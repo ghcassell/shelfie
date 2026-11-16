@@ -10,7 +10,9 @@ const PROMPT = `This is a photo of a UK supermarket till receipt. List every lin
 including non-food lines, discounts and totals. Expand abbreviated product names into plain words where you are
 confident (e.g. "CHKN BRST 400G" -> "Chicken breast 400g"); keep any size. "price" is the line total in pounds
 (negative for discounts), "quantity" is the number of packs (1 unless the receipt says otherwise).
-Reply with only JSON: {"items":[{"name":string,"quantity":number,"price":number|null}]}`;
+"category" is one or two plain words for the kind of product (e.g. "Dairy", "Canned foods", "Fresh fruit",
+"Cleaning", "Pet food"); null for discounts, totals and anything you cannot tell.
+Reply with only JSON: {"items":[{"name":string,"quantity":number,"price":number|null,"category":string|null}]}`;
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });

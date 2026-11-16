@@ -119,8 +119,8 @@ describe('receipt parser', () => {
     ])).toEqual(['CHKN BRST 3.75', 'BEANS 1.40']);
   });
   test('AI lines are validated', () => {
-    expect(linesFromAi({ items: [{ name: 'Milk', quantity: 2, price: 1.65 }, { name: '' }, { name: 'Total', price: 9 }, { name: 'Eggs' }] })).toEqual([
-      { name: 'Milk', quantity: 2, pricePence: 165, ticked: true },
+    expect(linesFromAi({ items: [{ name: 'Milk', quantity: 2, price: 1.65, category: ' Dairy ' }, { name: '' }, { name: 'Total', price: 9 }, { name: 'Eggs' }] })).toEqual([
+      { name: 'Milk', quantity: 2, pricePence: 165, ticked: true, category: 'Dairy' },
       { name: 'Total', quantity: 1, pricePence: 900, ticked: false },
       { name: 'Eggs', quantity: 1, pricePence: null, ticked: true },
     ]);

@@ -7,8 +7,10 @@ import { formatAmount } from '../../domain/amount';
 import { Button, EmptyState, ProductTile, s, ScreenHeader } from '../../ui/components';
 import { space } from '../../ui/theme';
 import { ensureNotificationPermission } from '../settings/digest';
+import { gtinFromScan } from '../../domain/off';
 import { BarcodeCamera } from './camera';
 import { type DateChoice, DateEditor, NEEDS_DATE } from './DateEditor';
+import { scanToLink } from './off';
 
 /** Walks through Batches that need a date. Scanning a pack's barcode jumps to its Batch. */
 export default function FillDatesScreen() {
@@ -56,10 +58,13 @@ export default function FillDatesScreen() {
         {scanning ? (
           <>
             <BarcodeCamera
-              onScan={(code) => {
-                const hit = undated.find((r) => r.product.barcode === code);
+              onScan={async (raw) => {
+                if (!scanning) return;
+                const hit = undated.find((r) => r.product.barcode === gtinFromScan(raw));
                 setScanning(false);
                 if (hit) goTo(hit.batch.id);
+                // A receipt's Products have no barcode yet: this scan gives the one on screen its barcode, photo and details.
+                else if (!row.product.barcode) setNote(await scanToLink(row.product.id, raw));
                 else setNote('No undated Batch for that barcode.');
               }}
             />
@@ -67,7 +72,7 @@ export default function FillDatesScreen() {
           </>
         ) : (
           <>
-            <Button label="Scan a pack to jump to it" icon="barcode-scan" kind="secondary" onPress={() => setScanning(true)} />
+            <Button label={row.product.barcode ? 'Scan a pack to jump to it' : 'Scan this pack for its photo and details'} icon="barcode-scan" kind="secondary" onPress={() => setScanning(true)} />
             {!!note && <Text style={s.muted}>{note}</Text>}
             <DateEditor key={row.batch.id} value={date} onChange={setDate} />
             <View style={s.chipRow}>

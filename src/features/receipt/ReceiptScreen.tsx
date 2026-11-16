@@ -14,7 +14,7 @@ import { color, space, TOUCH } from '../../ui/theme';
 import { TextCamera } from '../add/camera';
 import { addIgnored, getIgnored, removeIgnored } from './ignoreList';
 
-interface Line extends ReceiptLine { key: number; original: string; productId: string | null; price: string }
+interface Line extends ReceiptLine { key: number; original: string; productId: string | null; price: string; locationId: string | null }
 
 /** Capture, read on the phone, review one checklist, "Add ticked". No receipt record is kept. */
 export default function ReceiptScreen() {
@@ -24,6 +24,7 @@ export default function ReceiptScreen() {
   const [locationId, setLocationId] = useState<string | null>(null);
   const [newLocation, setNewLocation] = useState('');
   const [choosing, setChoosing] = useState<number | null>(null);
+  const [placing, setPlacing] = useState<number | null>(null); // the line whose own Location is being picked
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [added, setAdded] = useState<number | null>(null);
@@ -38,7 +39,7 @@ export default function ReceiptScreen() {
     return parsed.map((l, key) => {
       const productId = matchProduct(l.name, products, aliases);
       return {
-        ...l, key, original: l.name, productId,
+        ...l, key, original: l.name, productId, locationId: null, // null: goes wherever "Adding to" says
         name: products.find((p) => p.id === productId)?.name ?? l.name, // show the linked Product, not the shop's abbreviation
         price: l.pricePence == null ? '' : (l.pricePence / 100).toFixed(2),
       };
@@ -71,20 +72,22 @@ export default function ReceiptScreen() {
   };
 
   const addTicked = () => {
-    if (!lines || !locationId) return;
+    if (!lines) return;
     let count = 0;
     const created = new Map<string, string>(); // the same new item twice on one receipt is one Product
     for (const l of lines.filter((x) => x.ticked && x.name.trim())) {
+      const lineLocation = l.locationId ?? locationId;
+      if (!lineLocation) continue;
       const existing = products.find((p) => p.id === l.productId);
       const guess = guessUnit(l.name);
       const name = l.name.trim();
       const productId = existing?.id ?? created.get(name.toLowerCase())
-        ?? addProduct({ name, baseUnit: guess.baseUnit, packAmount: guess.packAmount, size: guess.size });
+        ?? addProduct({ name, baseUnit: guess.baseUnit, packAmount: guess.packAmount, size: guess.size, category: l.category ?? null });
       if (!existing) created.set(name.toLowerCase(), productId);
       saveAlias(l.original, productId); // the same receipt line maps automatically next time
       const pence = Math.round(parseFloat(l.price.replace(',', '.')) * 100);
       addBatch({
-        productId, locationId, packCount: l.quantity, startingAmount: l.quantity * (existing?.packAmount ?? guess.packAmount),
+        productId, locationId: lineLocation, packCount: l.quantity, startingAmount: l.quantity * (existing?.packAmount ?? guess.packAmount),
         expiryDate: null, noExpiry: false, dateKind: 'best_before', pricePence: isFinite(pence) ? pence : null,
       });
       count++;
@@ -114,7 +117,7 @@ export default function ReceiptScreen() {
       ) : (
         <>
           <ScrollView contentContainerStyle={[s.body, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
-            <Text style={s.label}>Adding to</Text>
+            <Text style={s.label}>Adding to (tap an item’s location to change just that one)</Text>
             <View style={s.chipRow}>
               {locations.map((l) => <Chip key={l.id} label={l.name} selected={l.id === locationId} onPress={() => setLocationId(l.id)} />)}
             </View>
@@ -141,6 +144,7 @@ export default function ReceiptScreen() {
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap', paddingLeft: TOUCH + space.sm }}>
                     <Chip icon={product ? 'link-variant' : 'plus'} label={product ? product.name : 'New Product'} onPress={() => setChoosing(l.key)} />
+                    <Chip icon="map-marker" label={locations.find((x) => x.id === (l.locationId ?? locationId))?.name ?? 'Location'} selected={!!l.locationId} onPress={() => setPlacing(l.key)} />
                     {/* One block, so the stepper never wraps apart. */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                       <IconButton icon="minus" ring label="One fewer" tint={color.primary} size={40} disabled={l.quantity <= 1} onPress={() => patch(l.key, { quantity: Math.max(1, l.quantity - 1) })} />
@@ -164,7 +168,7 @@ export default function ReceiptScreen() {
           <BottomBar paddingBottom={space.lg}>
             <Button label="Retake" kind="secondary" onPress={() => { if (photo) deletePhoto(photo); setPhoto(null); setLines(null); }} />
             <View style={{ flex: 1 }} />
-            <Button label={`Add ticked (${lines.filter((l) => l.ticked).length})`} onPress={addTicked} disabled={!locationId || !lines.some((l) => l.ticked)} />
+            <Button label={`Add ticked (${lines.filter((l) => l.ticked).length})`} onPress={addTicked} disabled={!lines.some((l) => l.ticked) || lines.some((l) => l.ticked && !(l.locationId ?? locationId))} />
           </BottomBar>
         </>
       )}
@@ -173,6 +177,12 @@ export default function ReceiptScreen() {
         <ListRow title="A new Product" onPress={() => { patch(choosing!, choosingLine?.productId ? { productId: null, name: choosingLine.original } : { productId: null }); setChoosing(null); }} />
         {products.map((p) => (
           <ListRow key={p.id} title={p.name} subtitle={[p.brand, p.size].filter(Boolean).join(' · ')} onPress={() => { patch(choosing!, { productId: p.id, name: p.name }); setChoosing(null); }} />
+        ))}
+      </Sheet>
+
+      <Sheet visible={placing != null} onClose={() => setPlacing(null)} title="Keep this one in">
+        {locations.map((x) => (
+          <ListRow key={x.id} title={x.name} onPress={() => { patch(placing!, { locationId: x.id }); setPlacing(null); }} />
         ))}
       </Sheet>
 

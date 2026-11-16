@@ -5,6 +5,7 @@ export interface ReceiptLine {
   quantity: number;
   pricePence: number | null; // line total
   ticked: boolean; // false for ignore-list lines
+  category?: string; // only from "Improve with AI": picks the emoji tile of a new Product
 }
 
 const IGNORE = /carrier|bag for life|\bbags?\b|discount|sub\s*-?total|\btotal\b|balance|loyalty|clubcard|nectar|points|change|\bcash\b|\bcard\b|visa|master\s*card|debit|credit|contactless|\bvat\b|saving|coupon|voucher|multibuy|price cut|reduction|deposit|rounding|\bdue\b|tender/i;
@@ -54,11 +55,12 @@ export function linesFromAi(json: unknown, ignored: string[] = []): ReceiptLine[
   const items = (json as { items?: unknown })?.items;
   if (!Array.isArray(items)) throw new Error('Unexpected AI response');
   return items
-    .filter((i): i is { name: string; quantity?: unknown; price?: unknown } => typeof i?.name === 'string' && i.name.trim() !== '')
+    .filter((i): i is { name: string; quantity?: unknown; price?: unknown; category?: unknown } => typeof i?.name === 'string' && i.name.trim() !== '')
     .map((i) => {
       const price = typeof i.price === 'number' && isFinite(i.price) ? Math.round(i.price * 100) : null;
       const quantity = typeof i.quantity === 'number' && i.quantity >= 1 ? Math.round(i.quantity) : 1;
-      return { name: i.name.trim(), quantity, pricePence: price, ticked: (price ?? 0) >= 0 && !isIgnored(i.name, ignored) };
+      const category = typeof i.category === 'string' && i.category.trim() ? i.category.trim().slice(0, 40) : undefined;
+      return { name: i.name.trim(), quantity, pricePence: price, ticked: (price ?? 0) >= 0 && !isIgnored(i.name, ignored), category };
     });
 }
 

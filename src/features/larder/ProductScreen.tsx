@@ -8,7 +8,8 @@ import { formatDay, toDay } from '../../domain/dates';
 import { WASTE_REASONS } from '../../domain/types';
 import Toast from 'react-native-toast-message';
 import { Button, Chip, Field, Form, ListRow, s, ScreenHeader, Section } from '../../ui/components';
-import { PhotoField } from '../add/camera';
+import { BarcodeCamera, PhotoField } from '../add/camera';
+import { scanToLink } from '../add/off';
 
 const num = (text: string) => { const n = parseFloat(text.replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
 const KIND = { used: 'Used', wasted: 'Thrown away', corrected: 'Corrected', split: 'Opened part' } as const;
@@ -19,6 +20,8 @@ export default function ProductScreen() {
   const { products, all, entries, warningDays } = useLarder();
   const product = products.find((p) => p.id === id);
   const [form, setForm] = useState<Record<string, string> | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     if (product && !form) {
@@ -58,6 +61,22 @@ export default function ProductScreen() {
           <Field label="Category" value={form.category} onChangeText={set('category')} />
           <Field label={unit === 'count' ? 'Items in one pack' : `Amount in one pack (${unit})`} value={form.packAmount} onChangeText={set('packAmount')} keyboardType="numeric" />
           {product.barcode && <Text style={s.muted}>Barcode {product.barcode}</Text>}
+          {!product.barcode && (scanning ? (
+            <>
+              <BarcodeCamera
+                onScan={async (raw) => {
+                  if (!scanning) return;
+                  setScanning(false);
+                  setNote(await scanToLink(product.id, raw));
+                  setForm(null); // reload the fields from what was found
+                }}
+              />
+              <Button label="Cancel" kind="secondary" onPress={() => setScanning(false)} />
+            </>
+          ) : (
+            <Button label="Scan barcode for photo and details" icon="barcode-scan" kind="secondary" onPress={() => setScanning(true)} />
+          ))}
+          {!!note && <Text style={s.muted}>{note}</Text>}
           {product.barcode && <Button label="View on Open Food Facts" kind="secondary" onPress={() => Linking.openURL(`https://world.openfoodfacts.org/product/${encodeURIComponent(product.barcode!)}`)} />}
         </Section>
 
