@@ -1,5 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
 import { Tabs } from "expo-router";
+import { useEffect } from "react";
+import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { IconName } from "./components";
 import { color, font, radius, space } from "./theme";
@@ -19,6 +22,10 @@ const icon =
 /** Larder, Shopping, Needs attention (with badge). Settings and Waste report live in the Larder's overflow menu. */
 export function BottomTabs({ attentionCount }: { attentionCount: number }) {
     const insets = useSafeAreaInsets();
+    useEffect(() => {
+        // App icon badge mirrors the Needs attention count (launcher-dependent on Android; no-op on web)
+        if (Platform.OS !== "web") Notifications.setBadgeCountAsync(attentionCount).catch(() => {});
+    }, [attentionCount]);
     const pad = 4; // vertical padding around the tab items
     const item = 58; // default is 49; the extra sits below the label, inside the selected pill
     return (
