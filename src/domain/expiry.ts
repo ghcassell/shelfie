@@ -66,13 +66,11 @@ export function spokenStatus(state: Urgency, date: Day | null, today: Day): stri
 export const rowLabel = (name: string, amount: string, location: string, status: string) =>
   [name, amount, location.toLowerCase(), status].filter(Boolean).join(', ');
 
-/** "3 expiring soon, 1 expired"; null when the Daily digest should not fire. */
-export function digestText(states: Urgency[]): string | null {
-  const n = (u: Urgency) => states.filter((s) => s === u).length;
-  const parts = [
-    [n('expiring_soon'), 'expiring soon'],
-    [n('expired'), 'expired'],
-    [n('past_best'), 'past best'],
-  ].filter(([c]) => c) as [number, string][];
-  return parts.length ? parts.map(([c, l]) => `${c} ${l}`).join(', ') : null;
+/** "Milk and 2 more expiring soon, Ham expired"; null when the Daily digest should not fire. Names the first item of each state. */
+export function digestText(items: { name: string; urgency: Urgency }[]): string | null {
+  const parts = ([['expiring_soon', 'expiring soon'], ['expired', 'expired'], ['past_best', 'past best']] as const).flatMap(([u, label]) => {
+    const names = items.filter((i) => i.urgency === u).map((i) => i.name);
+    return names.length ? [`${names[0]}${names.length > 1 ? ` and ${names.length - 1} more` : ''} ${label}`] : [];
+  });
+  return parts.length ? parts.join(', ') : null;
 }

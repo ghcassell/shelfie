@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useLarder } from '../../db/queries';
 import { addBatch, addLocation, addProduct, saveAlias } from '../../db/repositories';
 import { db } from '../../db/client';
@@ -135,7 +135,7 @@ export default function ReceiptScreen() {
               const product = products.find((p) => p.id === l.productId);
               const place = l.locationId === undefined ? locationId : l.locationId;
               return (
-                <View key={l.key} style={{ gap: space.sm, paddingVertical: space.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.brand, opacity: l.ticked ? 1 : 0.55 }}>
+                <View key={l.key} style={{ gap: space.sm, paddingVertical: space.sm, borderBottomWidth: 1, borderBottomColor: color.brand, opacity: l.ticked ? 1 : 0.55 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                     <Pressable
                       onPress={() => patch(l.key, { ticked: !l.ticked })} accessibilityRole="checkbox" accessibilityState={{ checked: l.ticked }}

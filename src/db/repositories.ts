@@ -238,6 +238,24 @@ export const clearTicked = () =>
   db.update(shoppingEntries).set({ deletedAt: nowIso(), ...dirty() })
     .where(and(eq(shoppingEntries.ticked, true), isNull(shoppingEntries.deletedAt))).run();
 
+/**
+ * Every ticked entry linked to a Product becomes a Batch (To put away, Needs a date); addBatch removes the entry.
+ * Unlinked entries stay ticked. Returns how many Batches were added.
+ * ponytail: always one pack; the quantity is free text ("2 tins", "500g"). Parse it if that proves annoying.
+ */
+export function putTickedInLarder(): number {
+  const ticked = db.select({ product: products }).from(shoppingEntries)
+    .innerJoin(products, eq(products.id, shoppingEntries.productId))
+    .where(and(eq(shoppingEntries.ticked, true), isNull(shoppingEntries.deletedAt), isNull(products.deletedAt))).all();
+  for (const { product } of ticked) {
+    addBatch({
+      productId: product.id, locationId: null, packCount: 1, startingAmount: product.packAmount,
+      expiryDate: null, noExpiry: false, dateKind: 'best_before', pricePence: null,
+    });
+  }
+  return ticked.length;
+}
+
 // --- Settings and aliases ----------------------------------------------------------------
 
 export function setWarningDays(days: number) {

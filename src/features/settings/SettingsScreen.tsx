@@ -1,12 +1,12 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Linking, Platform, ScrollView, Switch, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Linking, Platform, ScrollView, Share, Switch, Text, View } from 'react-native';
 import { db } from '../../db/client';
 import { useLarder } from '../../db/queries';
 import { addLocation, deleteAllProducts, deleteLocation, moveLocation, renameLocation, setWarningDays } from '../../db/repositories';
 import { households, members } from '../../db/schema';
-import { sync, useSyncStatus } from '../../sync';
+import { sendCode, signedInEmail, signInAgain, sync, useSyncStatus } from '../../sync';
 import Toast from 'react-native-toast-message';
 import { Button, Field, IconButton, ListRow, s, ScreenHeader, Section, Sheet } from '../../ui/components';
 import Dialog from '../../ui/Dialog';
@@ -22,7 +22,15 @@ export default function SettingsScreen() {
   const { locations, warningDays } = useLarder();
   const household = useLiveQuery(db.select().from(households)).data[0];
   const people = useLiveQuery(db.select().from(members)).data;
-  const { status, lastSynced } = useSyncStatus();
+  const { status, lastSynced, signedOut } = useSyncStatus();
+  const [email, setEmail] = useState<string | null>(null);
+  // Read again whenever sync settles, so it follows "Sign in again".
+  useEffect(() => { signedInEmail().then(setEmail, () => {}); }, [status]);
+  const [signIn, setSignIn] = useState<{ email: string; code: string; sent: boolean; busy?: boolean; error?: string } | null>(null);
+  const signInStep = (action: () => Promise<unknown>, then: () => void) => {
+    setSignIn((v) => v && { ...v, busy: true, error: '' });
+    action().then(then, (e: unknown) => setSignIn((v) => v && { ...v, busy: false, error: e instanceof Error ? e.message : 'That did not work. Check your connection.' }));
+  };
   const [digest, setDigest] = useState(getDigestSettings);
   const [newLocation, setNewLocation] = useState('');
   const [ignored, setIgnored] = useState(getIgnored);
@@ -36,6 +44,7 @@ export default function SettingsScreen() {
   const run = (action: () => Promise<unknown>) => action().catch((e: unknown) => Toast.show({ type: 'error', text1: e instanceof Error ? e.message : 'That did not work. Try again.' }));
   const confirmDeleteAllProducts = () => setDeleteStep(1);
   const syncText = status === 'syncing' ? 'Syncing…'
+    : signedOut ? 'This phone has been signed out, so it is not syncing. Shelfie keeps working on this phone.'
     : status === 'unavailable' ? 'Sync unavailable. Shelfie keeps working on this phone.'
     : lastSynced ? `Synced at ${pad(lastSynced.getHours())}:${pad(lastSynced.getMinutes())}` : 'Not synced yet';
 
@@ -116,9 +125,18 @@ export default function SettingsScreen() {
 
         <Section title="Household and sync">
           <Text style={s.text}>{people.map((m) => m.displayName).join(' and ')}</Text>
-          {household && people.length < 2 && <Text style={s.text}>Invite code: {household.inviteCode}</Text>}
+          {household && people.length < 2 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[s.text, { flex: 1 }]} selectable>Invite code: {household.inviteCode}</Text>
+              {/* The share sheet has Copy on it; no clipboard module needed. */}
+              <IconButton icon="share-variant" label="Copy or share the invite code" onPress={() => Share.share({ message: household.inviteCode })} />
+            </View>
+          )}
+          {!!email && <Text style={s.muted}>Signed in as {email}</Text>}
           <Text style={s.muted} accessibilityLiveRegion="polite">{syncText}</Text>
-          <Button label="Sync now" kind="secondary" onPress={sync} disabled={status === 'syncing'} />
+          {signedOut
+            ? <Button label="Sign in again" onPress={() => setSignIn({ email: '', code: '', sent: false })} />
+            : <Button label="Sync now" kind="secondary" onPress={sync} disabled={status === 'syncing'} />}
         </Section>
 
         <Section title="About">
@@ -133,6 +151,30 @@ export default function SettingsScreen() {
       <Sheet visible={!!renaming} onClose={() => setRenaming(null)} title="Rename location">
         <Field label="Name" value={renaming?.name ?? ''} onChangeText={(name) => setRenaming({ ...renaming!, name })} />
         <Button label="Save" disabled={!renaming?.name.trim()} onPress={() => { renameLocation(renaming!.id, renaming!.name); setRenaming(null); }} />
+        <View style={{ height: space.sm }} />
+      </Sheet>
+
+      <Sheet visible={!!signIn} onClose={() => setSignIn(null)} title="Sign in again">
+        {!signIn?.sent ? (
+          <>
+            <Field label="Your email" value={signIn?.email ?? ''} onChangeText={(email) => setSignIn({ ...signIn!, email })} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
+            <Button
+              label="Send me a code" disabled={signIn?.busy || !signIn?.email.includes('@')}
+              onPress={() => signInStep(() => sendCode(signIn!.email, false), () => setSignIn((v) => v && { ...v, sent: true, busy: false }))}
+            />
+            {/* Asking again cancels the code already sent, and the email sender allows only a few an hour. */}
+            <Button label="I already have a code" kind="secondary" disabled={!signIn?.email.includes('@')} onPress={() => setSignIn({ ...signIn!, sent: true, error: '' })} />
+          </>
+        ) : (
+          <>
+            <Field label="Code from the email" value={signIn.code} onChangeText={(code) => setSignIn({ ...signIn, code })} keyboardType="number-pad" autoComplete="one-time-code" />
+            <Button
+              label="Sign in" disabled={signIn.busy || signIn.code.trim().length < 6}
+              onPress={() => signInStep(() => signInAgain(signIn.email, signIn.code), () => { setSignIn(null); Toast.show({ type: 'success', text1: 'Signed in' }); })}
+            />
+          </>
+        )}
+        {!!signIn?.error && <Text style={s.error} accessibilityLiveRegion="polite">{signIn.error}</Text>}
         <View style={{ height: space.sm }} />
       </Sheet>
 

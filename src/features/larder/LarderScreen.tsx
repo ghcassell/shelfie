@@ -17,6 +17,7 @@ import {
     Chip,
     EmptyState,
     FAB,
+    IconButton,
     ListRow,
     s,
     ScreenHeader,
@@ -56,6 +57,16 @@ export default function LarderScreen() {
             <ScreenHeader
                 title="Shelfie"
                 logo
+                right={
+                    status === "unavailable" ? (
+                        <IconButton
+                            icon="cloud-off-outline"
+                            label="Sync unavailable. Open Settings"
+                            tint={color.red}
+                            onPress={() => router.push("/settings")}
+                        />
+                    ) : undefined
+                }
                 menu={[
                     {
                         label: "Settings",

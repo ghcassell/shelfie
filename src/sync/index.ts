@@ -1,3 +1,4 @@
+import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 import { addDatabaseChangeListener } from 'expo-sqlite';
 import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
@@ -11,15 +12,22 @@ export type SyncStatus = 'idle' | 'syncing' | 'ok' | 'unavailable';
 
 let status: SyncStatus = 'idle';
 let lastSynced: Date | null = null;
-let snapshot: { status: SyncStatus; lastSynced: Date | null } = { status, lastSynced };
+let snapshot: { status: SyncStatus; lastSynced: Date | null; signedOut: boolean } = { status, lastSynced, signedOut: false };
 const listeners = new Set<() => void>();
 const afterSync = new Set<() => void>();
-const setStatus = (s: SyncStatus) => {
+/** `signedOut`: sync is unavailable because the Supabase session is gone, so only signing in again will fix it. */
+const setStatus = (s: SyncStatus, signedOut = false) => {
   status = s;
   if (s === 'ok') lastSynced = new Date();
-  snapshot = { status, lastSynced };
+  snapshot = { status, lastSynced, signedOut };
   listeners.forEach((l) => l());
 };
+
+/** No session, and not merely because the token refresh could not reach the server. */
+async function sessionLost() {
+  const { data, error } = await supabase.auth.getSession();
+  return !data.session && !(error && isAuthRetryableFetchError(error));
+}
 
 export const useSyncStatus = () =>
   useSyncExternalStore((l) => (listeners.add(l), () => listeners.delete(l)), () => snapshot);
@@ -34,11 +42,13 @@ export function sync(): Promise<void> {
   return (running ??= (async () => {
     setStatus('syncing');
     try {
+      // Checked first: without a session the server answers a pull with no rows rather than an error.
+      if (await sessionLost()) return setStatus('unavailable', true);
       await syncOnce(db, supabaseRemote);
       setStatus('ok');
     } catch (e) {
       console.warn('Sync failed', e);
-      setStatus('unavailable');
+      setStatus('unavailable', await sessionLost().catch(() => false));
     } finally {
       running = null;
       afterSync.forEach((fn) => fn());
@@ -61,8 +71,8 @@ export function startSyncTriggers() {
 
 // --- Auth and Household ------------------------------------------------------------------
 
-export const sendCode = async (email: string) => {
-  const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
+export const sendCode = async (email: string, shouldCreateUser = true) => {
+  const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser } });
   if (error) throw new Error(error.message);
 };
 
@@ -70,6 +80,20 @@ export const verifyCode = async (email: string, token: string) => {
   const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: token.trim(), type: 'email' });
   if (error) throw new Error(error.message);
 };
+
+/** The email this phone is signed in with, read from the stored session (works offline); null when signed out. */
+export const signedInEmail = async () => (await supabase.auth.getSession()).data.session?.user.email ?? null;
+
+/** "Sign in again" after a lost session. The Household is already known, so it must be the same person. */
+export async function signInAgain(email: string, token: string) {
+  await verifyCode(email, token);
+  const { data } = await supabase.auth.getUser();
+  if (data.user?.id !== db.select().from(syncState).get()?.memberId) {
+    await supabase.auth.signOut();
+    throw new Error('That is a different account. Use the email this phone first signed in with.');
+  }
+  await sync();
+}
 
 /** Records who is signed in on this phone, then pulls the Household. False if not in a Household yet. */
 export async function adoptMembership(): Promise<boolean> {

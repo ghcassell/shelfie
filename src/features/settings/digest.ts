@@ -56,7 +56,7 @@ async function reschedule() {
     const now = new Date();
     const firesToday = now.getHours() * 60 + now.getMinutes() < hour * 60 + minute;
     const fireDay = firesToday ? toDay(now) : addDays(toDay(now), 1);
-    const body = digestText(loadRows(fireDay).filter((r) => r.remaining > 0).map((r) => r.urgency));
+    const body = digestText(loadRows(fireDay).filter((r) => r.remaining > 0).map((r) => ({ name: r.product.name, urgency: r.urgency })));
     if (!body) return; // nothing Expiring soon, Expired or Past best; Needs a date never triggers it
     await Notifications.scheduleNotificationAsync({
       content: { title: 'Shelfie', body, data: { url: '/attention' } },

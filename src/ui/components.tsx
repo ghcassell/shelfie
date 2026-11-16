@@ -125,8 +125,10 @@ export function ListRow({ title, subtitle, left, right, edge, onPress, accessibi
   return (
     <Pressable
       onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={accessibilityLabel}
-      style={[s.row, { borderLeftColor: edge ?? 'transparent' }]}
+      style={s.row}
     >
+      {/* The urgency edge is its own strip, not a left border: Android drops the divider on rows whose borders differ in colour and width. */}
+      {edge && <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: edge }} />}
       {left}
       <View style={{ flex: 1 }}>
         <Text style={s.rowTitle}>{title}</Text>
@@ -348,7 +350,7 @@ export const s = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: 2, borderRadius: radius.full, alignSelf: 'flex-start' },
   pillText: { fontSize: font.xs, fontWeight: '600' },
   tile: { backgroundColor: color.tint, alignItems: 'center', justifyContent: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, paddingRight: space.screen, paddingLeft: space.screen - 4, minHeight: TOUCH, borderLeftWidth: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.brand, backgroundColor: color.surface },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, paddingRight: space.screen, paddingLeft: space.screen, minHeight: TOUCH, borderBottomWidth: 1, borderBottomColor: color.line, backgroundColor: color.surface },
   rowTitle: { fontSize: font.md, fontWeight: '600', color: color.ink },
   rowSubtitle: { fontSize: font.sm, color: color.inkMuted, marginTop: 2 },
   banner: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md, marginHorizontal: space.screen, borderRadius: radius.md, borderWidth: 1, minHeight: TOUCH },

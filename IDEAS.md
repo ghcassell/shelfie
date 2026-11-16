@@ -22,31 +22,16 @@ Medication, pet food and household items get their own emoji, but the rest of th
 
 ## From the November 2026 review
 
-Found while reviewing the whole app. The first three are faults rather than features; fix those before the rest.
+Found while reviewing the whole app. What is left after the three sync faults, Shopping list to Larder and the named Daily digest were done.
 
-### Sync can skip a row the other phone wrote at the same moment
 
-The pull cursor (`syncOnce` in `src/sync/engine.ts`) is the newest server timestamp seen, including this phone's own pushes. A row the other phone wrote a moment earlier but committed just after this phone's pull is older than the cursor and never arrives. Fix: pull from the cursor minus a minute. The pull is already safe to repeat.
 
-### No way back in if the Supabase session is lost
 
-"Signed in" means the local `sync_state` row exists (`src/app/_layout.tsx`). If the Supabase session is revoked or lost, sync shows "Sync unavailable" for ever and there is no sign-in screen. Fix: when sync fails on auth, offer "Sign in again" in Settings (email code only; the Household is already known).
-
-### Sync failure only shows in Settings
-
-The two phones can drift apart for days unnoticed (the Supabase project pauses after about a week idle). Fix: a small icon in the Larder header when `useSyncStatus()` is `unavailable`, tapping through to Settings.
-
-### Shopping list to Larder
-
-"Put ticked in the larder" on the Shopping screen: a Batch (To put away, Needs a date) for every ticked entry linked to a Product, the same as `addTicked` in `ReceiptScreen`. Today ticked entries are only cleared and everything is scanned again.
 
 ### A Products list
 
 A Product is only reachable through a live Batch. Once it is Finished its threshold, history and details cannot be reached, and it cannot be re-added without the pack in hand. A searchable list (from the Larder menu) opening the Product screen, with "Add a Batch" on it.
 
-### Name the items in the Daily digest
-
-"Milk expires today, 2 more expiring soon" rather than counts alone. A small change to `digestText` in `src/domain/expiry.ts`, which would take names as well as states.
 
 ### Used versus wasted in the Waste report
 

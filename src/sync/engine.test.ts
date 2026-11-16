@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import initSqlJs from 'sql.js';
 import { batches, locations, products, shoppingEntries, syncState, usageEntries } from '../db/schema';
-import { type Db, DuplicateError, hasDirty, pullPages, type Remote, syncOnce } from './engine';
+import { type Db, DuplicateError, hasDirty, overlapStart, pullPages, type Remote, syncOnce } from './engine';
 
 test('a pull larger than one server response arrives whole, page by page', async () => {
   // 2500 rows, timestamps shared in pairs so pages overlap at their edges.
@@ -14,6 +14,12 @@ test('a pull larger than one server response arrives whole, page by page', async
   const got = await pullPages(fetchPage, null, 1000);
   expect(got.map((r) => r.id)).toEqual(server.map((r) => r.id));
   expect(calls).toBe(3);
+});
+
+test('the pull starts a minute before the cursor, whatever shape the server timestamp has', () => {
+  expect(overlapStart('2026-11-14T10:05:01.123456+00:00')).toBe('2026-11-14T10:04:01.123Z');
+  expect(overlapStart('not a date')).toBe('not a date');
+  expect(overlapStart(null)).toBeNull();
 });
 
 type Row = Record<string, any>;
@@ -92,6 +98,18 @@ describe('push then pull', () => {
     remote.seed('products', { id: 'p9', household_id: H, name: 'Milk', base_unit: 'ml', pack_amount: 1000, low_threshold_unit: 'base' });
     await syncOnce(db, remote);
     expect(one(products, 'p9')).toMatchObject({ name: 'Milk', baseUnit: 'ml', packAmount: 1000, dirty: 0 });
+    expect(db.select().from(syncState).get()!.cursor).toBe(remote.get('products', 'p9')!.updated_at);
+  });
+
+  test('a row stamped just before the cursor but committed after the pull still arrives', async () => {
+    remote.seed('products', { id: 'late', household_id: H, name: 'Late', base_unit: 'count', low_threshold_unit: 'base' });
+    const late = remote.get('products', 'late')!;
+    remote.tables.get('products')!.delete('late'); // not committed yet
+    remote.seed('products', { id: 'p9', household_id: H, name: 'Milk', base_unit: 'count', low_threshold_unit: 'base' });
+    await syncOnce(db, remote);
+    remote.tables.get('products')!.set('late', late);
+    await syncOnce(db, remote);
+    expect(one(products, 'late')).toMatchObject({ name: 'Late' });
     expect(db.select().from(syncState).get()!.cursor).toBe(remote.get('products', 'p9')!.updated_at);
   });
 

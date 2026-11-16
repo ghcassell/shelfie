@@ -137,9 +137,11 @@ describe('effective expiry and urgency', () => {
       .toBe('Semi-skimmed milk, 1 litre, fridge, expires in 2 days');
   });
   test('Daily digest text; Needs a date never triggers it', () => {
-    expect(digestText(['expiring_soon', 'expiring_soon', 'expiring_soon', 'expired', 'fine'])).toBe('3 expiring soon, 1 expired');
-    expect(digestText(['past_best'])).toBe('1 past best');
-    expect(digestText(['needs_date', 'fine', 'no_expiry'])).toBeNull();
+    const items = (...states: ReturnType<typeof urgency>[]) =>
+      states.map((u, i) => ({ name: ['Milk', 'Eggs', 'Ham', 'Jam', 'Rice'][i], urgency: u }));
+    expect(digestText(items('expiring_soon', 'expiring_soon', 'expiring_soon', 'expired', 'fine'))).toBe('Milk and 2 more expiring soon, Jam expired');
+    expect(digestText(items('past_best'))).toBe('Milk past best');
+    expect(digestText(items('needs_date', 'fine', 'no_expiry'))).toBeNull();
   });
 });
 

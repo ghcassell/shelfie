@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { FlatList, Pressable, RefreshControl, Share, TextInput, View } from 'react-native';
 import { db } from '../../db/client';
 import { useLarder } from '../../db/queries';
-import { addShoppingEntry, clearTicked, deleteShoppingEntry, setTicked } from '../../db/repositories';
+import Toast from 'react-native-toast-message';
+import { addShoppingEntry, clearTicked, deleteShoppingEntry, putTickedInLarder, setTicked } from '../../db/repositories';
 import { members, shoppingEntries } from '../../db/schema';
 import { sync, useSyncStatus } from '../../sync';
 import { Button, Chip, EmptyState, IconButton, ListRow, s, ScreenHeader } from '../../ui/components';
@@ -74,7 +75,20 @@ export default function ShoppingScreen() {
           />
         )}
         ListFooterComponent={entries.some((e) => e.ticked)
-          ? <View style={{ padding: space.screen }}><Button label="Clear ticked" kind="secondary" onPress={clearTicked} /></View> : undefined}
+          ? (
+            <View style={{ padding: space.screen, gap: space.sm }}>
+              {entries.some((e) => e.ticked && e.productId) && (
+                <Button
+                  label="Put ticked in the larder"
+                  onPress={() => {
+                    const n = putTickedInLarder();
+                    Toast.show({ type: 'success', text1: `${n} added to the larder`, text2: 'To put away, and each needs a date' });
+                  }}
+                />
+              )}
+              <Button label="Clear ticked" kind="secondary" onPress={clearTicked} />
+            </View>
+          ) : undefined}
       />
     </View>
   );

@@ -128,9 +128,9 @@ async function pushTable(db: Db, remote: Remote, t: SyncTable) {
   }
 }
 
-async function pullTable(db: Db, remote: Remote, t: SyncTable, cursor: string | null): Promise<string | null> {
-  const rows = await remote.pull(t.name, cursor);
-  let max = cursor;
+async function pullTable(db: Db, remote: Remote, t: SyncTable, since: string | null): Promise<string | null> {
+  const rows = await remote.pull(t.name, since);
+  let max: string | null = null;
   for (const remoteRow of rows) {
     if (!max || remoteRow.updated_at > max) max = remoteRow.updated_at;
     const row = fromRemote(t.table, remoteRow);
@@ -144,14 +144,26 @@ async function pullTable(db: Db, remote: Remote, t: SyncTable, cursor: string | 
   return max;
 }
 
+/**
+ * A minute before the cursor. The server's timestamps carry microseconds ("…01.123456+00:00"), which the phone's
+ * JavaScript engine may not parse, so they are cut to milliseconds first; if it still cannot be read, the cursor itself.
+ */
+export function overlapStart(cursor: string | null): string | null {
+  if (!cursor) return cursor;
+  const t = Date.parse(cursor.replace(/(\.\d{3})\d+/, '$1'));
+  return Number.isNaN(t) ? cursor : new Date(t - 60_000).toISOString();
+}
+
 /** Push dirty rows by UUID upsert, then pull rows newer than the cursor. */
 export async function syncOnce(db: Db, remote: Remote) {
   for (const t of TABLES) if (t.push) await pushTable(db, remote, t);
   const state = db.select().from(syncState).get();
   if (!state) return;
   let max = state.cursor;
+  // A row the other phone stamped just before the cursor can commit just after our pull, so re-pull the last minute.
+  const since = overlapStart(state.cursor);
   for (const t of TABLES) {
-    const seen = await pullTable(db, remote, t, state.cursor);
+    const seen = await pullTable(db, remote, t, since);
     if (seen && (!max || seen > max)) max = seen;
   }
   db.update(syncState).set({ cursor: max }).run();
