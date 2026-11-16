@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useLarder } from '../../db/queries';
-import { addUsage, deleteBatch, openBatch, updateBatch, updateProduct } from '../../db/repositories';
+import { deleteBatch, openBatch, updateBatch, updateProduct } from '../../db/repositories';
 import { formatAmount, packsRemaining } from '../../domain/amount';
 import { formatDay } from '../../domain/dates';
 import { pillText } from '../../domain/expiry';
@@ -14,7 +14,7 @@ import { showDialog } from '../../ui/Dialog';
 import { space } from '../../ui/theme';
 import { type DateChoice, DateEditor } from '../add/DateEditor';
 import { ensureNotificationPermission } from '../settings/digest';
-import { offerShopping } from './BatchItem';
+import { logUsage } from './BatchItem';
 
 type Panel = 'waste' | 'open' | 'date' | 'move' | 'price' | null;
 
@@ -42,7 +42,7 @@ export default function BatchScreen() {
   const log = (kind: 'used' | 'wasted', reason: WasteReason | null = null) => {
     setPanel(null);
     setAmount(null);
-    offerShopping(addUsage(batch, kind, picked, reason), product);
+    logUsage(row, kind, picked, reason);
     if (picked >= remaining) router.back(); // Finished: hidden from the Larder, kept as history
   };
 

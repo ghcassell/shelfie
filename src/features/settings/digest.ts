@@ -33,6 +33,7 @@ export function useDigestTap(signedIn: boolean) {
 
 /** Asked when the first dated Batch is saved. If denied, the Needs attention badge stands in. */
 export async function ensureNotificationPermission() {
+  // eslint-disable-next-line import/namespace -- the enum is exported; the rule cannot follow the package's compiled re-export
   await Notifications.setNotificationChannelAsync('digest', { name: 'Daily digest', importance: Notifications.AndroidImportance.DEFAULT });
   const current = await Notifications.getPermissionsAsync();
   if (!current.granted && current.canAskAgain) await Notifications.requestPermissionsAsync();

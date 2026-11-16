@@ -188,13 +188,12 @@ export function addUsage(
   kind: 'used' | 'wasted' | 'corrected',
   amount: number,
   wasteReason: WasteReason | null = null,
-): 'prompt' | null {
-  return withShoppingRules(batch.productId, () => {
-    db.insert(usageEntries).values({
-      ...base(), batchId: batch.id, kind, amount, memberId: session().memberId, createdAt: nowIso(),
-      wasteReason: kind === 'wasted' ? wasteReason : null,
-    }).run();
-  });
+): { entryId: string; shopping: 'prompt' | null } {
+  const row = {
+    ...base(), batchId: batch.id, kind, amount, memberId: session().memberId, createdAt: nowIso(),
+    wasteReason: kind === 'wasted' ? wasteReason : null,
+  };
+  return { entryId: row.id, shopping: withShoppingRules(batch.productId, () => { db.insert(usageEntries).values(row).run(); }) };
 }
 
 /** Undo: a corrected entry that reverses the original in full, at most once. */

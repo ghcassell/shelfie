@@ -57,7 +57,7 @@ export default function SignInScreen() {
           <View style={{ height: space.sm }} />
           <Field label="Or enter an invite code" value={invite} onChangeText={setInvite} autoCapitalize="characters" />
           <Button label="Join their Household" kind="secondary" disabled={busy || !name.trim() || !invite.trim()} onPress={run(() => joinHousehold(invite, name))} />
-          <Text style={s.muted}>The invite code is in Settings on the first person's phone.</Text>
+          <Text style={s.muted}>The invite code is in Settings on the first person’s phone.</Text>
         </>
       )}
 

@@ -6,6 +6,7 @@ import { addBatch, addLocation, addProduct, bumpPackCount, findProductByBarcode,
 import { formatAmount } from '../../domain/amount';
 import { TO_PUT_AWAY } from '../../domain/larder';
 import { guessUnit } from '../../domain/receipt';
+import type { ProductRow } from '../../db/schema';
 import type { BaseUnit } from '../../domain/types';
 import { Button, Chip, Field, IconButton, s, Sheet, WizardStep } from '../../ui/components';
 import { color, space } from '../../ui/theme';
@@ -24,7 +25,7 @@ const EMPTY = { name: '', brand: '', size: '', category: '', baseUnit: 'count' a
 
 export default function AddWizard() {
   const params = useLocalSearchParams<{ several?: string }>();
-  const { locations } = useLarder();
+  const { locations, products } = useLarder();
   const [several, setSeveral] = useState(params.several === '1');
   const [step, setStep] = useState<Step>('scan');
   const [barcode, setBarcode] = useState<string | null>(null);
@@ -49,6 +50,17 @@ export default function AddWizard() {
   const afterProduct = (): Step => (several && location ? 'date' : 'quantity');
   const quick = several && !productId && !!barcode; // unknown barcode: name-only quick create
 
+  const pickKnown = (known: ProductRow) => {
+    setProductId(known.id);
+    setDraft({ ...EMPTY, ...known, brand: known.brand ?? '', size: known.size ?? '', category: known.category ?? '', packAmount: String(known.packAmount) });
+    setStep(afterProduct());
+  };
+  // Typing a name by hand offers the Products already known, so "Bananas" stays one Product instead of one per shop.
+  // With a new barcode in hand, only Products that have none are offered: picking one gives it this barcode.
+  const typedName = draft.name.trim().toLowerCase();
+  const suggestions = productId || typedName.length < 2 ? []
+    : products.filter((p) => (!barcode || !p.barcode) && p.name.toLowerCase().includes(typedName)).slice(0, 4);
+
   const onScan = async (raw: string) => {
     if (looking) return;
     const code = gtinFromScan(raw);
@@ -56,11 +68,7 @@ export default function AddWizard() {
     setBarcode(code);
     setNote('');
     const known = findProductByBarcode(code);
-    if (known) {
-      setProductId(known.id);
-      setDraft({ ...EMPTY, ...known, brand: known.brand ?? '', size: known.size ?? '', category: known.category ?? '', packAmount: String(known.packAmount) });
-      return setStep(afterProduct());
-    }
+    if (known) return pickKnown(known);
     setLooking(true);
     const found = await lookupBarcode(code);
     setLooking(false);
@@ -149,6 +157,19 @@ export default function AddWizard() {
           {!!note && <Text style={s.muted}>{note}</Text>}
           {!!barcode && <Text style={s.muted}>Barcode {barcode}</Text>}
           <Field label="Name" value={draft.name} onChangeText={(name) => set(quick || !productId ? { name, ...unitFrom(name, draft) } : { name })} autoFocus={!productId} />
+          {suggestions.length > 0 && (
+            <>
+              <Text style={s.label}>Added before? Tap to use it.</Text>
+              <View style={s.chipRow}>
+                {suggestions.map((p) => (
+                  <Chip
+                    key={p.id} icon="link-variant" label={[p.name, p.size].filter(Boolean).join(' · ')}
+                    onPress={() => { if (barcode) updateProduct(p.id, { barcode }); pickKnown(p); }}
+                  />
+                ))}
+              </View>
+            </>
+          )}
           {quick ? (
             <Text style={s.muted}>Just the name for now. Brand and size can be filled in later on the Product screen.</Text>
           ) : (

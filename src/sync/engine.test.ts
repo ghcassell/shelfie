@@ -4,7 +4,17 @@ import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import initSqlJs from 'sql.js';
 import { batches, locations, products, shoppingEntries, syncState, usageEntries } from '../db/schema';
-import { type Db, DuplicateError, hasDirty, type Remote, syncOnce } from './engine';
+import { type Db, DuplicateError, hasDirty, pullPages, type Remote, syncOnce } from './engine';
+
+test('a pull larger than one server response arrives whole, page by page', async () => {
+  // 2500 rows, timestamps shared in pairs so pages overlap at their edges.
+  const server = Array.from({ length: 2500 }, (_, i) => ({ id: `r${i}`, updated_at: String(i >> 1).padStart(6, '0') }));
+  let calls = 0;
+  const fetchPage = async (since: string | null) => (calls++, server.filter((r) => !since || r.updated_at >= since).slice(0, 1000));
+  const got = await pullPages(fetchPage, null, 1000);
+  expect(got.map((r) => r.id)).toEqual(server.map((r) => r.id));
+  expect(calls).toBe(3);
+});
 
 type Row = Record<string, any>;
 

@@ -1,6 +1,5 @@
 import { and, eq, getTableColumns, ne, sql } from 'drizzle-orm';
-import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
-import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
+import type { BaseSQLiteDatabase, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import {
   batches, householdSettings, households, locations, members, products, receiptAliases, shoppingEntries, syncState, usageEntries,
 } from '../db/schema';
@@ -19,6 +18,22 @@ export interface Remote {
 }
 
 export class DuplicateError extends Error {}
+
+/**
+ * The server caps one response (Supabase: 1000 rows), so a pull goes page by page, each starting at the last
+ * timestamp seen. `fetchPage` returns up to `pageSize` rows with updated_at >= since, oldest first.
+ */
+export async function pullPages(fetchPage: (since: string | null) => Promise<Row[]>, since: string | null, pageSize: number): Promise<Row[]> {
+  const rows = new Map<string, Row>();
+  for (;;) {
+    const page = await fetchPage(since);
+    const before = rows.size;
+    for (const r of page) rows.set(r.id, r);
+    // ponytail: stops early if a whole page shares one timestamp; the server stamps rows one by one, so that cannot happen.
+    if (page.length < pageSize || rows.size === before) return [...rows.values()];
+    since = page[page.length - 1].updated_at;
+  }
+}
 
 interface SyncTable {
   name: string;

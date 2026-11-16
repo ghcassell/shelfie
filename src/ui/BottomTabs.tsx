@@ -6,13 +6,15 @@ import { color, font, radius, space } from "./theme";
 
 const icon =
     (name: IconName, outline: IconName) =>
-    ({ focused, size }: { focused: boolean; size: number }) => (
-        <MaterialCommunityIcons
-            name={focused ? name : outline} // selected = filled glyph, so it's not colour-only
-            size={size}
-            color={focused ? color.primary : color.inkMuted}
-        />
-    );
+    function TabIcon({ focused, size }: { focused: boolean; size: number }) {
+        return (
+            <MaterialCommunityIcons
+                name={focused ? name : outline} // selected = filled glyph, so it's not colour-only
+                size={size}
+                color={focused ? color.primary : color.inkMuted}
+            />
+        );
+    };
 
 /** Larder, Shopping, Needs attention (with badge). Settings and Waste report live in the Larder's overflow menu. */
 export function BottomTabs({ attentionCount }: { attentionCount: number }) {

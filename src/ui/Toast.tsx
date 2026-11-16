@@ -11,8 +11,8 @@ const ACCENT: Record<Accent, string> = {
   info: color.brand,
 };
 
-function AppToast({ text1, text2, hide, isVisible, accent }: {
-  text1?: string; text2?: string; hide: () => void; isVisible: boolean; accent: Accent;
+function AppToast({ text1, text2, hide, isVisible, accent, props }: {
+  text1?: string; text2?: string; hide: () => void; isVisible: boolean; accent: Accent; props?: { onUndo?: () => void };
 }) {
   const bar = ACCENT[accent];
   return (
@@ -22,6 +22,11 @@ function AppToast({ text1, text2, hide, isVisible, accent }: {
         {text1 ? <Text style={styles.text1}>{text1}</Text> : null}
         {text2 ? <Text style={styles.text2}>{text2}</Text> : null}
       </View>
+      {props?.onUndo && (
+        <Pressable onPress={() => { props.onUndo!(); hide(); }} accessibilityRole="button" style={styles.undoBtn} tabIndex={isVisible ? 0 : -1}>
+          <Text style={styles.undo}>Undo</Text>
+        </Pressable>
+      )}
       <Pressable onPress={hide} accessibilityRole="button" accessibilityLabel="Dismiss"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.closeBtn}
         tabIndex={isVisible ? 0 : -1}
@@ -33,9 +38,9 @@ function AppToast({ text1, text2, hide, isVisible, accent }: {
 }
 
 export const toastConfig: ToastConfig = {
-  success: (p: ToastConfigParams<unknown>) => <AppToast {...p} accent="success" />,
-  error: (p: ToastConfigParams<unknown>) => <AppToast {...p} accent="error" />,
-  info: (p: ToastConfigParams<unknown>) => <AppToast {...p} accent="info" />,
+  success: (p: ToastConfigParams<{ onUndo?: () => void }>) => <AppToast {...p} accent="success" />,
+  error: (p: ToastConfigParams<{ onUndo?: () => void }>) => <AppToast {...p} accent="error" />,
+  info: (p: ToastConfigParams<{ onUndo?: () => void }>) => <AppToast {...p} accent="info" />,
 };
 
 const styles = StyleSheet.create({
@@ -67,6 +72,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  undoBtn: {
+    minWidth: 48,
+    paddingHorizontal: space.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  undo: {
+    fontSize: font.md,
+    fontWeight: '600',
+    color: color.primary,
   },
   text1: {
     fontSize: font.md,

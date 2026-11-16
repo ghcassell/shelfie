@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Linking, ScrollView, Text, View } from 'react-native';
 import { useLarder } from '../../db/queries';
 import { undoEntry, updateProduct } from '../../db/repositories';
@@ -19,20 +19,17 @@ export default function ProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { products, all, entries, warningDays } = useLarder();
   const product = products.find((p) => p.id === id);
-  const [form, setForm] = useState<Record<string, string> | null>(null);
+  const [edits, setForm] = useState<Record<string, string> | null>(null);
   const [scanning, setScanning] = useState(false);
   const [note, setNote] = useState('');
 
-  useEffect(() => {
-    if (product && !form) {
-      setForm({
-        name: product.name, brand: product.brand ?? '', size: product.size ?? '', category: product.category ?? '',
-        packAmount: String(product.packAmount), opened: product.openedShelfLifeDays?.toString() ?? '',
-        warning: product.warningDays?.toString() ?? '', low: product.lowThreshold?.toString() ?? '',
-      });
-    }
-  }, [product, form]);
-  if (!product || !form) return <View style={s.screen}><ScreenHeader title="" back /></View>;
+  if (!product) return <View style={s.screen}><ScreenHeader title="" back /></View>;
+  // Until something is typed the fields follow the Product (a barcode scan or the other phone may change it).
+  const form = edits ?? {
+    name: product.name, brand: product.brand ?? '', size: product.size ?? '', category: product.category ?? '',
+    packAmount: String(product.packAmount), opened: product.openedShelfLifeDays?.toString() ?? '',
+    warning: product.warningDays?.toString() ?? '', low: product.lowThreshold?.toString() ?? '',
+  };
 
   const set = (key: string) => (value: string) => setForm({ ...form, [key]: value });
   const unit = product.baseUnit;

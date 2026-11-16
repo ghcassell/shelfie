@@ -31,7 +31,7 @@ export default function ReceiptScreen() {
   const [added, setAdded] = useState<{ count: number; later: number } | null>(null);
   const [ignored, setIgnored] = useState(getIgnored);
   const photoRef = useRef<string | null>(null);
-  photoRef.current = photo;
+  useEffect(() => { photoRef.current = photo; }, [photo]);
   // The photo never outlives this screen.
   useEffect(() => () => { if (photoRef.current) deletePhoto(photoRef.current); }, []);
 
@@ -130,7 +130,7 @@ export default function ReceiptScreen() {
               </>
             )}
 
-            {lines.length === 0 && <Text style={s.muted}>No lines with a price were found. Try "Improve with AI", or go back and retake the photo.</Text>}
+            {lines.length === 0 && <Text style={s.muted}>No lines with a price were found. Try “Improve with AI”, or go back and retake the photo.</Text>}
             {lines.map((l) => {
               const product = products.find((p) => p.id === l.productId);
               const place = l.locationId === undefined ? locationId : l.locationId;
