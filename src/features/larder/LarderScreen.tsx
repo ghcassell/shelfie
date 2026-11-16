@@ -29,8 +29,11 @@ export default function LarderScreen() {
     const { larder, attention, locations, today } = useLarder();
     const { status } = useSyncStatus();
     const [query, setQuery] = useState("");
-    const [locationId, setLocationId] = useState<string | null>(null); // a Location id, or TO_PUT_AWAY
+    const [pickedLocationId, setLocationId] = useState<string | null>(null); // a Location id, or TO_PUT_AWAY
     const toPutAway = larder.filter((r) => !r.batch.locationId).length;
+    // Once the last one is put away the chip goes, and its filter with it.
+    const locationId =
+        pickedLocationId === TO_PUT_AWAY && !toPutAway ? null : pickedLocationId;
     const [openedOnly, setOpenedOnly] = useState(false);
     const [adding, setAdding] = useState(false);
 
@@ -110,12 +113,7 @@ export default function LarderScreen() {
                                 paddingHorizontal: space.screen,
                             }}
                         >
-                            <Chip
-                                label="Opened"
-                                selected={openedOnly}
-                                onPress={() => setOpenedOnly(!openedOnly)}
-                            />
-                            {(toPutAway > 0 || locationId === TO_PUT_AWAY) && (
+                            {toPutAway > 0 && (
                                 <Chip
                                     warn
                                     label={`${TO_PUT_AWAY} (${toPutAway})`}
@@ -129,6 +127,11 @@ export default function LarderScreen() {
                                     }
                                 />
                             )}
+                            <Chip
+                                label="Opened"
+                                selected={openedOnly}
+                                onPress={() => setOpenedOnly(!openedOnly)}
+                            />
                             {locations.map((l) => (
                                 <Chip
                                     key={l.id}
