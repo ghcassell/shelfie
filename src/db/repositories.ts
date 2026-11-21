@@ -97,8 +97,16 @@ export function addProduct(input: ProductInput): string {
   return row.id;
 }
 
-export const updateProduct = (id: string, patch: Partial<ProductInput>) =>
-  db.update(products).set({ ...patch, ...dirty() }).where(eq(products.id, id)).run();
+/** Changing packAmount re-sizes the Product's Batches, unless something was already used (then only future packs change). */
+export function updateProduct(id: string, patch: Partial<ProductInput>) {
+  db.transaction((tx) => {
+    tx.update(products).set({ ...patch, ...dirty() }).where(eq(products.id, id)).run();
+    if (patch.packAmount == null) return;
+    const own = tx.select().from(batches).where(eq(batches.productId, id)).all();
+    if (tx.select().from(usageEntries).all().some((e) => own.some((b) => b.id === e.batchId))) return;
+    for (const b of own) tx.update(batches).set({ startingAmount: b.packCount * patch.packAmount, ...dirty() }).where(eq(batches.id, b.id)).run();
+  });
+}
 
 /**
  * A Product with no barcode (a receipt made it) gets its barcode and, when Open Food Facts knows it, the photo and details.
