@@ -233,8 +233,8 @@ export default function AddWizard() {
           Added {tally.added} Batches · {tally.needDate} need a date · {tally.noDetails} new Products with no details
         </Text>
         <View style={{ gap: space.sm }}>
-          <Button label="Go to Needs attention" onPress={() => router.replace('/attention')} />
-          <Button label="Done" kind="secondary" onPress={() => router.back()} />
+          {tally.needDate + tally.noDetails > 0 && <Button label="Go to Needs attention" onPress={() => router.replace('/attention')} />}
+          <Button label="Done" kind={tally.needDate + tally.noDetails > 0 ? 'secondary' : 'primary'} onPress={() => router.back()} />
         </View>
       </Sheet>
     </>
