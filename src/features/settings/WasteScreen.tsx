@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useLarder } from '../../db/queries';
-import { addMonths, toDay } from '../../domain/dates';
+import { undoEntry } from '../../db/repositories';
+import { formatAmount, isReversed } from '../../domain/amount';
+import { addMonths, formatDay, toDay } from '../../domain/dates';
 import { WASTE_REASONS } from '../../domain/types';
 import { formatPence, wasteReport, wasteTotalText } from '../../domain/waste';
-import { EmptyState, IconButton, ListRow, s, ScreenHeader, Section } from '../../ui/components';
+import { Button, EmptyState, IconButton, ListRow, s, ScreenHeader, Section } from '../../ui/components';
 import { color, font, space } from '../../ui/theme';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -16,6 +19,11 @@ export default function WasteScreen() {
   const report = wasteReport(month, entries, all.map((r) => r.batch));
   const name = (productId: string) => products.find((p) => p.id === productId)?.name ?? 'Unknown';
   const times = (n: number) => `${n} ${n === 1 ? 'time' : 'times'}`;
+  const batchById = new Map(all.map((r) => [r.batch.id, r]));
+  const binned = entries
+    .filter((e) => e.kind === 'wasted' && toDay(e.createdAt).startsWith(month) && !isReversed(e, entries) && batchById.has(e.batchId))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const restore = (id: string) => { undoEntry(id); Toast.show({ type: 'success', text1: 'Restored to the Larder' }); };
 
   return (
     <View style={s.screen}>
@@ -48,6 +56,18 @@ export default function WasteScreen() {
                 subtitle={times(r.entries)} right={<Text style={s.text}>{formatPence(r.pence)}</Text>}
               />
             ))}
+          </Section>
+          <Section title="Thrown away">
+            {binned.map((e) => {
+              const { product } = batchById.get(e.batchId)!;
+              return (
+                <ListRow
+                  key={e.id} title={product.name}
+                  subtitle={`${formatAmount(e.amount, product.baseUnit)} · ${formatDay(toDay(e.createdAt))}`}
+                  right={<Button label="Restore" kind="secondary" onPress={() => restore(e.id)} />}
+                />
+              );
+            })}
           </Section>
         </ScrollView>
       )}
