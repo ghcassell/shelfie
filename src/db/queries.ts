@@ -1,5 +1,5 @@
 import { isNull } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { useLive } from './useLive';
 import { useMemo } from 'react';
 import { toDay } from '../domain/dates';
 import { ATTENTION, buildRows, type LarderRow } from '../domain/larder';
@@ -11,12 +11,12 @@ export type Row = LarderRow<BatchRow, ProductRow>;
 
 /** Live view of every Batch joined to its Product and Location, in Larder order. Sync writes show up here too. */
 export function useLarder() {
-  const b = useLiveQuery(db.select().from(batches).where(isNull(batches.deletedAt))).data;
-  const p = useLiveQuery(db.select().from(products)).data;
-  const l = useLiveQuery(db.select().from(locations).where(isNull(locations.deletedAt)).orderBy(...locationOrder)).data;
-  const allLocations = useLiveQuery(db.select().from(locations)).data;
-  const e = useLiveQuery(db.select().from(usageEntries)).data;
-  const settings = useLiveQuery(db.select().from(householdSettings)).data;
+  const b = useLive(db.select().from(batches).where(isNull(batches.deletedAt)));
+  const p = useLive(db.select().from(products));
+  const l = useLive(db.select().from(locations).where(isNull(locations.deletedAt)).orderBy(...locationOrder));
+  const allLocations = useLive(db.select().from(locations));
+  const e = useLive(db.select().from(usageEntries));
+  const settings = useLive(db.select().from(householdSettings));
   const warningDays = settings[0]?.warningDays ?? 3;
   const today = toDay();
   return useMemo(() => {

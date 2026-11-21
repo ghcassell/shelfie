@@ -1,4 +1,4 @@
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { useLive } from '../../db/useLive';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Platform, ScrollView, Share, Switch, Text, View } from 'react-native';
@@ -20,8 +20,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function SettingsScreen() {
   const { locations, warningDays } = useLarder();
-  const household = useLiveQuery(db.select().from(households)).data[0];
-  const people = useLiveQuery(db.select().from(members)).data;
+  const household = useLive(db.select().from(households))[0];
+  const people = useLive(db.select().from(members));
   const { status, lastSynced, signedOut } = useSyncStatus();
   const [email, setEmail] = useState<string | null>(null);
   // Read again whenever sync settles, so it follows "Sign in again".

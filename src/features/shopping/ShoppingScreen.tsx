@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { isNull } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { useLive } from '../../db/useLive';
 import { useState } from 'react';
 import { FlatList, Pressable, RefreshControl, Share, TextInput, View } from 'react-native';
 import { db } from '../../db/client';
@@ -13,8 +13,8 @@ import { Button, Chip, EmptyState, IconButton, ListRow, s, ScreenHeader } from '
 import { color, space, TOUCH } from '../../ui/theme';
 
 export default function ShoppingScreen() {
-  const entries = useLiveQuery(db.select().from(shoppingEntries).where(isNull(shoppingEntries.deletedAt))).data;
-  const people = useLiveQuery(db.select().from(members)).data;
+  const entries = useLive(db.select().from(shoppingEntries).where(isNull(shoppingEntries.deletedAt)));
+  const people = useLive(db.select().from(members));
   const { products } = useLarder();
   const { status } = useSyncStatus();
   const [name, setName] = useState('');

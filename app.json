@@ -7,6 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#ffffff",
     "android": {
       "package": "com.shelfie.app",
       "permissions": [
@@ -47,7 +48,8 @@
         }
       ],
       "expo-font",
-      "./plugins/withDevVariant"
+      "./plugins/withDevVariant",
+      ["expo-splash-screen", { "backgroundColor": "#ffffff", "image": "./assets/splash-icon.png", "imageWidth": 200 }]
     ]
   }
 }

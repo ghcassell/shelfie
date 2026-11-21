@@ -1,14 +1,15 @@
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { Stack, usePathname } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db, dbReady } from '../db/client';
 import migrations from '../db/migrations/migrations';
 import { syncState } from '../db/schema';
+import { useLive } from '../db/useLive';
 import { rescheduleDigest, useDigestTap } from '../features/settings/digest';
 import SignInScreen from '../features/settings/SignInScreen';
 import { onAfterSync, startSyncTriggers } from '../sync';
@@ -17,25 +18,33 @@ import { DialogHost } from '../ui/Dialog';
 import { toastConfig } from '../ui/Toast';
 import { color } from '../ui/theme';
 
+// Hold the native splash while the database opens and migrates, so the user never sees a blank frame between it and the
+// first real screen. App (or an error screen) releases it once there is something to show.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+function Ready({ children }: { children: ReactNode }) {
+  useEffect(() => { SplashScreen.hideAsync().catch(() => {}); }, []);
+  return <>{children}</>;
+}
+
 export default function RootLayout() {
   const [opened, setOpened] = useState<true | Error | null>(dbReady ? null : true);
   useEffect(() => { dbReady?.then(() => setOpened(true), setOpened); }, []);
   if (opened instanceof Error) {
-    return <View style={[s.screen, s.empty]}><Text style={s.error}>Shelfie could not open its database: {opened.message} If Shelfie is open in another tab, close that one and reload.</Text></View>;
+    return <Ready><View style={[s.screen, s.empty]}><Text style={s.error}>Shelfie could not open its database: {opened.message} If Shelfie is open in another tab, close that one and reload.</Text></View></Ready>;
   }
   return opened ? <Migrated /> : null;
 }
 
 function Migrated() {
   const { success, error } = useMigrations(db, migrations);
-  if (error) return <View style={[s.screen, s.empty]}><Text style={s.error}>Shelfie could not open its database: {error.message}</Text></View>;
+  if (error) return <Ready><View style={[s.screen, s.empty]}><Text style={s.error}>Shelfie could not open its database: {error.message}</Text></View></Ready>;
   if (!success) return null;
   return <App />;
 }
 
 function App() {
-  const session = useLiveQuery(db.select().from(syncState));
-  const signedIn = session.data.length > 0;
+  const signedIn = useLive(db.select().from(syncState)).length > 0;
   const insets = useSafeAreaInsets();
   const wide = usePathname() === '/tidy'; // the tidy table uses the whole window
 
@@ -49,10 +58,10 @@ function App() {
 
   useDigestTap(signedIn);
 
-  if (!session.updatedAt) return null; // first read not back yet
+  // Android is edge-to-edge, so the window no longer resizes for the keyboard. Padding it here shrinks every screen's
+  // ScrollView, and a shrinking ScrollView scrolls its focused input into view.
   return (
-    // Android is edge-to-edge, so the window no longer resizes for the keyboard. Padding it here shrinks every screen's
-    // ScrollView, and a shrinking ScrollView scrolls its focused input into view.
+    <Ready>
     <KeyboardAvoidingView behavior="padding" style={[{ flex: 1 }, Platform.OS === 'web' && !wide && WEB_COLUMN]}>
       <StatusBar style="dark" />
       {signedIn ? (
@@ -64,6 +73,7 @@ function App() {
       <Toast config={toastConfig} position="bottom" bottomOffset={TAB_BAR_HEIGHT + insets.bottom + 8} />
       <DialogHost />
     </KeyboardAvoidingView>
+    </Ready>
   );
 }
 
