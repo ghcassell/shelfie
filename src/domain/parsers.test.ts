@@ -1,6 +1,6 @@
 import { parseExpiryDates } from './dateParser';
 import { gtinFromScan, isShopCode } from './off';
-import { aliasKey, guessUnit, linesFromAi, matchProduct, parseReceipt, rowsFromOcr } from './receipt';
+import { aliasKey, guessUnit, linesFromAi, matchProduct, parseReceipt, rowsFromOcr, rowsFromText } from './receipt';
 
 const TODAY = '2026-11-14';
 
@@ -117,6 +117,15 @@ describe('receipt parser', () => {
       { text: 'BEANS', x: 10, y: 50, height: 20 },
       { text: '3.75', x: 300, y: 22, height: 20 },
     ])).toEqual(['CHKN BRST 3.75', 'BEANS 1.40']);
+  });
+  test('pasted email text: one-line rows and one-cell-per-line tables', () => {
+    const text = 'Your order\r\n\r\nSemi Skimmed Milk 2L\t£1.65\nHeinz Beanz 415g\n2\n£2.80\nBananas\nQty: 1\n£0.87\nTotal\n£5.32\n';
+    expect(parseReceipt(rowsFromText(text)).map((l) => [l.name, l.quantity, l.pricePence, l.ticked])).toEqual([
+      ['Semi Skimmed Milk 2L', 1, 165, true],
+      ['Heinz Beanz 415g', 2, 280, true],
+      ['Bananas', 1, 87, true],
+      ['Total', 1, 532, false],
+    ]);
   });
   test('AI lines are validated', () => {
     expect(linesFromAi({ items: [{ name: 'Milk', quantity: 2, price: 1.65, category: ' Dairy ' }, { name: '' }, { name: 'Total', price: 9 }, { name: 'Eggs' }] })).toEqual([

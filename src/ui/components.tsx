@@ -41,7 +41,7 @@ export function ScreenHeader({ title, back, right, menu, logo, children }: {
     // A bit more room above the divider when it sits under fixed content rather than the title. toArray drops the false of an unmet `cond && <X />`.
     <View style={[s.header, { paddingTop: insets.top + space.sm }, Children.toArray(children).length > 0 && { paddingBottom: space.md }]}>
       <View style={s.headerRow}>
-      {back && <IconButton icon="arrow-left" label="Back" onPress={typeof back === 'function' ? back : () => router.back()} />}
+      {back && <IconButton icon="arrow-left" label="Back" onPress={typeof back === 'function' ? back : () => (router.canGoBack() ? router.back() : router.replace('/'))} />}
       {logo && (
         // The shadow sits on a wrapper: expo-image clips to its own rounded bounds.
         <View style={s.headerLogoShadow}>
@@ -123,19 +123,22 @@ export function ListRow({ title, subtitle, left, right, edge, onPress, accessibi
   title: string; subtitle?: string; left?: ReactNode; right?: ReactNode; edge?: string; onPress?: () => void; accessibilityLabel?: string;
 }) {
   return (
-    <Pressable
-      onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={accessibilityLabel}
-      style={s.row}
-    >
+    // `right` is a sibling of the Pressable, not a child: on web a <button> can't nest another <button>.
+    <View style={s.row}>
       {/* The urgency edge is its own strip, not a left border: Android drops the divider on rows whose borders differ in colour and width. */}
       {edge && <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: edge }} />}
-      {left}
-      <View style={{ flex: 1 }}>
-        <Text style={s.rowTitle}>{title}</Text>
-        {!!subtitle && <Text style={s.rowSubtitle}>{subtitle}</Text>}
-      </View>
+      <Pressable
+        onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={accessibilityLabel}
+        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md }}
+      >
+        {left}
+        <View style={{ flex: 1 }}>
+          <Text style={s.rowTitle}>{title}</Text>
+          {!!subtitle && <Text style={s.rowSubtitle}>{subtitle}</Text>}
+        </View>
+      </Pressable>
       {right}
-    </Pressable>
+    </View>
   );
 }
 

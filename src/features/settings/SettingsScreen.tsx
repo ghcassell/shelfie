@@ -6,7 +6,7 @@ import { db } from '../../db/client';
 import { useLarder } from '../../db/queries';
 import { addLocation, deleteAllProducts, deleteLocation, moveLocation, renameLocation, setWarningDays } from '../../db/repositories';
 import { households, members } from '../../db/schema';
-import { sendCode, signedInEmail, signInAgain, sync, useSyncStatus } from '../../sync';
+import { sendCode, signedInEmail, signInAgain, signOut, sync, useSyncStatus } from '../../sync';
 import Toast from 'react-native-toast-message';
 import { Button, Field, IconButton, ListRow, s, ScreenHeader, Section, Sheet } from '../../ui/components';
 import Dialog from '../../ui/Dialog';
@@ -39,6 +39,7 @@ export default function SettingsScreen() {
   const [locationInUse, setLocationInUse] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [deleteStep, setDeleteStep] = useState<1 | 2 | null>(null);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const changeDigest = (patch: Partial<typeof digest>) => { setDigest({ ...digest, ...patch }); setDigestSettings(patch); };
   const run = (action: () => Promise<unknown>) => action().catch((e: unknown) => Toast.show({ type: 'error', text1: e instanceof Error ? e.message : 'That did not work. Try again.' }));
@@ -137,6 +138,7 @@ export default function SettingsScreen() {
           {signedOut
             ? <Button label="Sign in again" onPress={() => setSignIn({ email: '', code: '', sent: false })} />
             : <Button label="Sync now" kind="secondary" onPress={sync} disabled={status === 'syncing'} />}
+          <Button label="Sign out" kind="secondary" onPress={() => setConfirmSignOut(true)} />
         </Section>
 
         <Section title="About">
@@ -148,7 +150,16 @@ export default function SettingsScreen() {
         </Section>
       </ScrollView>
 
-      <Sheet visible={!!renaming} onClose={() => setRenaming(null)} title="Rename location">
+      <Dialog
+        visible={confirmSignOut} onDismiss={() => setConfirmSignOut(false)} title="Sign out?"
+        message="This removes Shelfie's data from this device. Anything not yet synced is lost. Sign back in to get the Household back."
+        buttons={[
+          { label: 'Cancel', onPress: () => setConfirmSignOut(false) },
+          { label: 'Sign out', variant: 'destructive', onPress: () => { setConfirmSignOut(false); run(signOut); } },
+        ]}
+      />
+
+      <Sheet visible={!!renaming}onClose={() => setRenaming(null)} title="Rename location">
         <Field label="Name" value={renaming?.name ?? ''} onChangeText={(name) => setRenaming({ ...renaming!, name })} />
         <Button label="Save" disabled={!renaming?.name.trim()} onPress={() => { renameLocation(renaming!.id, renaming!.name); setRenaming(null); }} />
         <View style={{ height: space.sm }} />

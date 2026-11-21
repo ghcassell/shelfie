@@ -31,7 +31,31 @@ export function rowsFromOcr(lines: OcrLine[]): string[] {
   return rows.map((r) => r.parts.sort((a, b) => a.x - b.x).map((p) => p.text).join(' '));
 }
 
-const pence = (s: string) => Math.round(parseFloat(s) * 100);
+/**
+ * Text pasted from an emailed receipt. Copied HTML tables often put each cell on its own line
+ * ("Beans 415g" / "2" / "£1.40"): join a lone price onto the line above, and turn a lone
+ * quantity into the "2 x" line parseReceipt already reads.
+ */
+export function rowsFromText(text: string): string[] {
+  const rows: string[] = [];
+  let qty: string | null = null;
+  const hasPrice = (r: string) => /\d[.,]\d{2}\s*-?\s*[A-Z]?$/.test(r);
+  for (const line of text.split(/\r?\n/).map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)) {
+    const prev = rows.length ? rows[rows.length - 1] : null;
+    if (/^(?:qty:? ?)?\d{1,2}$/i.test(line) && prev && !hasPrice(prev)) { qty = line.replace(/\D/g, ''); continue; }
+    if (/^£?-?\d+[.,]\d{2}$/.test(line) && prev && !hasPrice(prev)) {
+      rows[rows.length - 1] = `${prev} ${line}`;
+      if (qty && qty !== '1') rows.push(`${qty} x ${line}`);
+      qty = null;
+      continue;
+    }
+    qty = null;
+    rows.push(line);
+  }
+  return rows;
+}
+
+const pence = (s: string) =>Math.round(parseFloat(s) * 100);
 
 /** On-device parse: lines ending in a price are items; "2 x 1.50" style lines set the previous item's quantity. */
 export function parseReceipt(rows: string[], ignored: string[] = []): ReceiptLine[] {

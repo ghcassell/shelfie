@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,26 +26,39 @@ export default function SignInScreen() {
     setBusy(false);
   };
 
+  const sendEmail = run(async () => { await sendCode(email); setStage('code'); });
+  // Already a Member (new phone or reinstall): straight in; the Larder re-pulls.
+  const verify = run(async () => { await verifyCode(email, code); if (!(await adoptMembership())) setStage('household'); });
+  const create = run(() => createHousehold(name));
+  const join = run(() => joinHousehold(invite, name));
+  const canEmail = !busy && email.includes('@');
+  const canVerify = !busy && code.trim().length >= 6;
+  const canCreate = !busy && !!name.trim();
+  const canJoin = canCreate && !!invite.trim();
+
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.body, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.screen }]} keyboardShouldPersistTaps="handled">
-      <Text style={{ fontFamily: font.title, fontSize: 40, color: color.dark }} accessibilityRole="header">Shelfie</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+        <View style={s.headerLogoShadow}>
+          <Image source={require('../../../assets/icon.png')} style={s.headerLogo} accessibilityIgnoresInvertColors />
+        </View>
+        <Text style={{ fontFamily: font.title, fontSize: 40, color: color.dark }} accessibilityRole="header">Shelfie</Text>
+      </View>
       <Text style={s.muted}>Know what is in your larder, and use it before it goes off.</Text>
 
       {stage === 'email' && (
         <>
-          <Field label="Your email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
-          <Button label="Send me a code" disabled={busy || !email.includes('@')} onPress={run(async () => { await sendCode(email); setStage('code'); })} />
+          <Field label="Your email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" onSubmitEditing={() => canEmail && sendEmail()} />
+          <Button label="Send me a code" disabled={!canEmail} onPress={sendEmail} />
         </>
       )}
 
       {stage === 'code' && (
         <>
           <Text style={s.text}>We sent a code to {email.trim()}.</Text>
-          <Field label="Code from the email" value={code} onChangeText={setCode} keyboardType="number-pad" autoComplete="one-time-code" />
+          <Field label="Code from the email" value={code} onChangeText={setCode} keyboardType="number-pad" autoComplete="one-time-code" onSubmitEditing={() => canVerify && verify()} />
           <Button
-            label="Sign in" disabled={busy || code.trim().length < 6}
-            // Already a Member (new phone or reinstall): straight in; the Larder re-pulls.
-            onPress={run(async () => { await verifyCode(email, code); if (!(await adoptMembership())) setStage('household'); })}
+            label="Sign in" disabled={!canVerify} onPress={verify}
           />
           <Button label="Use a different email" kind="secondary" onPress={() => setStage('email')} />
         </>
@@ -52,11 +66,11 @@ export default function SignInScreen() {
 
       {stage === 'household' && (
         <>
-          <Field label="Your name (shown to the other person)" value={name} onChangeText={setName} autoComplete="given-name" />
-          <Button label="Start a new Household" disabled={busy || !name.trim()} onPress={run(() => createHousehold(name))} />
+          <Field label="Your name (shown to the other person)" value={name} onChangeText={setName} autoComplete="given-name" onSubmitEditing={() => (invite.trim() ? canJoin && join() : canCreate && create())} />
+          <Button label="Start a new Household" disabled={!canCreate} onPress={create} />
           <View style={{ height: space.sm }} />
-          <Field label="Or enter an invite code" value={invite} onChangeText={setInvite} autoCapitalize="characters" />
-          <Button label="Join their Household" kind="secondary" disabled={busy || !name.trim() || !invite.trim()} onPress={run(() => joinHousehold(invite, name))} />
+          <Field label="Or enter an invite code" value={invite} onChangeText={setInvite} autoCapitalize="characters" onSubmitEditing={() => canJoin && join()} />
+          <Button label="Join their Household" kind="secondary" disabled={!canJoin} onPress={join} />
           <Text style={s.muted}>The invite code is in Settings on the first person’s phone.</Text>
         </>
       )}

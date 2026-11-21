@@ -1,9 +1,9 @@
 import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 import { addDatabaseChangeListener } from 'expo-sqlite';
 import { useSyncExternalStore } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { db } from '../db/client';
-import { syncState } from '../db/schema';
+import { batches, households, householdSettings, locations, members, products, receiptAliases, shoppingEntries, syncState, usageEntries } from '../db/schema';
 import { hasDirty, syncOnce } from './engine';
 import { supabaseRemote } from './remote';
 import { supabase } from './supabase';
@@ -93,6 +93,17 @@ export async function signInAgain(email: string, token: string) {
     throw new Error('That is a different account. Use the email this phone first signed in with.');
   }
   await sync();
+}
+
+/** Ends the session and wipes this device's copy of the Household (the server keeps it); the app then shows the sign-in screen. */
+export async function signOut() {
+  await supabase.auth.signOut({ scope: 'local' }); // local: works offline
+  db.transaction((tx) => {
+    // syncState last: its absence is what flips the root layout to the sign-in screen.
+    for (const t of [receiptAliases, shoppingEntries, usageEntries, batches, products, locations, householdSettings, members, households, syncState]) tx.delete(t).run();
+  });
+  // ponytail: the web live query did not flip the root layout after the wipe; reload is the blunt fix.
+  if (Platform.OS === 'web') window.location.reload();
 }
 
 /** Records who is signed in on this phone, then pulls the Household. False if not in a Household yet. */

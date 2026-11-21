@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { loadRows } from '../../db/repositories';
 import { addDays, toDay } from '../../domain/dates';
 import { digestText } from '../../domain/expiry';
+import { ATTENTION } from '../../domain/larder';
 
 // Per-phone settings: never synced.
 export interface DigestSettings { on: boolean; hour: number; minute: number }
@@ -56,10 +57,13 @@ async function reschedule() {
     const now = new Date();
     const firesToday = now.getHours() * 60 + now.getMinutes() < hour * 60 + minute;
     const fireDay = firesToday ? toDay(now) : addDays(toDay(now), 1);
-    const body = digestText(loadRows(fireDay).filter((r) => r.remaining > 0).map((r) => ({ name: r.product.name, urgency: r.urgency })));
+    const rows = loadRows(fireDay).filter((r) => r.remaining > 0);
+    const body = digestText(rows.map((r) => ({ name: r.product.name, urgency: r.urgency })));
     if (!body) return; // nothing Expiring soon, Expired or Past best; Needs a date never triggers it
+    // Android launchers badge the icon from a posted notification, not from setBadgeCountAsync; this is the number they show.
+    const badge = rows.filter((r) => ATTENTION.includes(r.urgency)).length;
     await Notifications.scheduleNotificationAsync({
-      content: { title: 'Shelfie', body, data: { url: '/attention' } },
+      content: { title: 'Shelfie', body, badge, data: { url: '/attention' } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, channelId: 'digest' },
     });
   } catch (e) {

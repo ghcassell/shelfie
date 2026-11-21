@@ -7,7 +7,7 @@ import { addBatch, addLocation, addProduct, saveAlias } from '../../db/repositor
 import { db } from '../../db/client';
 import { receiptAliases } from '../../db/schema';
 import { TO_PUT_AWAY } from '../../domain/larder';
-import { aliasKey, guessUnit, linesFromAi, matchProduct, parseReceipt, type ReceiptLine, rowsFromOcr } from '../../domain/receipt';
+import { aliasKey, guessUnit, linesFromAi, matchProduct, parseReceipt, type ReceiptLine, rowsFromOcr, rowsFromText } from '../../domain/receipt';
 import { improveReceipt } from '../../sync';
 import { BottomBar, Button, Chip, Field, IconButton, ListRow, s, ScreenHeader, Sheet } from '../../ui/components';
 import { deletePhoto, photoBase64 } from '../../ui/platform';
@@ -24,6 +24,7 @@ export default function ReceiptScreen() {
   const [lines, setLines] = useState<Line[] | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null); // null: put away later, the default after a big shop
   const [newLocation, setNewLocation] = useState('');
+  const [pasted, setPasted] = useState('');
   const [choosing, setChoosing] = useState<number | null>(null);
   const [placing, setPlacing] = useState<number | null>(null); // the line whose own Location is being picked
   const [busy, setBusy] = useState(false);
@@ -104,7 +105,7 @@ export default function ReceiptScreen() {
     <View style={s.screen}>
       <ScreenHeader title="Scan a receipt" back />
       {!lines ? (
-        <View style={s.body}>
+        <ScrollView contentContainerStyle={[s.body, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           <Text style={s.muted}>
             {Platform.OS === 'web'
               ? 'Upload a photo of the receipt. Nothing is sent anywhere until you choose "Improve with AI" on the next step, which reads it.'
@@ -114,7 +115,12 @@ export default function ReceiptScreen() {
             tall label="Read receipt"
             onText={({ lines: ocr }, path) => { setPhoto(path); setLines(toLines(parseReceipt(rowsFromOcr(ocr), ignored))); }}
           />
-        </View>
+          <Field
+            label="Or paste an emailed receipt" value={pasted} onChangeText={setPasted} multiline
+            placeholder="Copy the items from the email and paste them here" style={{ minHeight: 120, textAlignVertical: 'top' }}
+          />
+          <Button label="Read pasted text" icon="clipboard-text-outline" kind="secondary" disabled={!pasted.trim()} onPress={() => setLines(toLines(parseReceipt(rowsFromText(pasted), ignored)))} />
+        </ScrollView>
       ) : (
         <>
           <ScrollView contentContainerStyle={[s.body, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
@@ -130,7 +136,7 @@ export default function ReceiptScreen() {
               </>
             )}
 
-            {lines.length === 0 && <Text style={s.muted}>No lines with a price were found. Try “Improve with AI”, or go back and retake the photo.</Text>}
+            {lines.length === 0 && <Text style={s.muted}>{photo ? 'No lines with a price were found. Try “Improve with AI”, or go back and retake the photo.' : 'No lines with a price were found in the pasted text. Go back and check it includes the item prices.'}</Text>}
             {lines.map((l) => {
               const product = products.find((p) => p.id === l.productId);
               const place = l.locationId === undefined ? locationId : l.locationId;
@@ -169,7 +175,7 @@ export default function ReceiptScreen() {
             )}
           </ScrollView>
           <BottomBar paddingBottom={space.lg}>
-            <Button label="Retake" kind="secondary" onPress={() => { if (photo) deletePhoto(photo); setPhoto(null); setLines(null); }} />
+            <Button label={photo ? 'Retake' : 'Back'} kind="secondary" onPress={() => { if (photo) deletePhoto(photo); setPhoto(null); setLines(null); }} />
             <View style={{ flex: 1 }} />
             <Button label={`Add ticked (${lines.filter((l) => l.ticked).length})`} onPress={addTicked} disabled={!lines.some((l) => l.ticked)} />
           </BottomBar>
