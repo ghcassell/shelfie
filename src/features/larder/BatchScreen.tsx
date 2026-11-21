@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useLarder } from '../../db/queries';
-import { deleteBatch, openBatch, updateBatch, updateProduct } from '../../db/repositories';
+import { addLocation, deleteBatch, openBatch, updateBatch, updateProduct } from '../../db/repositories';
 import { formatAmount, packsRemaining } from '../../domain/amount';
 import { formatDay } from '../../domain/dates';
 import { pillText } from '../../domain/expiry';
@@ -12,7 +12,7 @@ import Toast from 'react-native-toast-message';
 import { Button, Chip, Field, ListRow, ProductTile, QuantityPicker, s, ScreenHeader, Section, Sheet, StatusPill } from '../../ui/components';
 import { showDialog } from '../../ui/Dialog';
 import { space } from '../../ui/theme';
-import { type DateChoice, DateEditor } from '../add/DateEditor';
+import { type DateChoice, DateEditor, describe } from '../add/DateEditor';
 import { ensureNotificationPermission } from '../settings/digest';
 import { logUsage } from './BatchItem';
 
@@ -26,6 +26,7 @@ export default function BatchScreen() {
   const [panel, setPanel] = useState<Panel>(null);
   const [within, setWithin] = useState('');
   const [price, setPrice] = useState('');
+  const [newLocation, setNewLocation] = useState('');
   const [date, setDate] = useState<DateChoice | null>(null);
   const [freezerNote, setFreezerNote] = useState(false);
 
@@ -144,19 +145,30 @@ export default function BatchScreen() {
         <Button label="Save" onPress={saveOpened} />
       </Sheet>
 
-      <Sheet visible={panel === 'date'} onClose={() => setPanel(null)} title={freezerNote ? 'Moved to the freezer. New date?' : 'Change the date'}>
+      <Sheet
+        visible={panel === 'date'} onClose={() => setPanel(null)} title={freezerNote ? 'Moved to the freezer. New date?' : 'Change the date'}
+        footer={<>
+          {date && <Text style={[s.text, { fontWeight: '600' }]}>Will save: {describe(date)}</Text>}
+          <Button label="Save date" onPress={saveDate} />
+        </>}
+      >
         {date && <DateEditor value={date} onChange={setDate} />}
-        <Button label="Save date" onPress={saveDate} />
       </Sheet>
 
       <Sheet visible={panel === 'move'} onClose={() => setPanel(null)} title="Move to">
         <View style={s.chipRow}>
           {locations.map((l) => <Chip key={l.id} label={l.name} selected={l.id === batch.locationId} onPress={() => move(l.id, l.name)} />)}
         </View>
+        {!locations.length && <Text style={[s.muted]}>No locations yet. Add one to move this here.</Text>}
+        <Field label="New location" value={newLocation} onChangeText={setNewLocation} placeholder="Fridge, freezer, cupboard…" style={{ marginVertical: space.sm }} />
+        <Button
+          label="Add and move here" kind="secondary" disabled={!newLocation.trim()}
+          onPress={() => { const name = newLocation.trim(); move(addLocation(name), name); setNewLocation(''); }}
+        />
       </Sheet>
 
       <Sheet visible={panel === 'price'} onClose={() => setPanel(null)} title="Price paid">
-        <Field label="Price for the whole Batch (£). Leave blank if unknown." value={price} onChangeText={setPrice} keyboardType="numeric" />
+        <Field label="Price for the whole Batch (£). Leave blank if unknown." value={price} onChangeText={setPrice} keyboardType="numeric" style={{ marginVertical: space.sm }} />
         <Button
           label="Save" onPress={() => {
             const pence = Math.round(parseFloat(price.replace(',', '.')) * 100);

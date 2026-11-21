@@ -274,7 +274,8 @@ export function Field({ label, style, ...input }: TextInputProps & { label: stri
 }
 
 /** Bottom sheet for pickers and menus. Scrim fades; sheet slides — animated separately so the scrim doesn't travel with the sheet. */
-export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title?: string; children: ReactNode }) {
+/** Sizes to its content up to 80% of the screen, then the body scrolls; `footer` stays pinned below it. */
+export function Sheet({ visible, onClose, title, children, footer }: { visible: boolean; onClose: () => void; title?: string; children: ReactNode; footer?: ReactNode }) {
   const insets = useSafeAreaInsets();
   const [rendered, setRendered] = useState(visible);
   if (visible && !rendered) setRendered(true); // stays mounted after close until the slide-out finishes
@@ -320,6 +321,7 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
             {!!title && <Text style={s.sheetTitle} accessibilityRole="header">{title}</Text>}
           </View>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space.sm }}>{children}</ScrollView>
+          {footer && <View style={{ gap: space.sm, paddingTop: space.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.line }}>{footer}</View>}
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
