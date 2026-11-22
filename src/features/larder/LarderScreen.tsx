@@ -230,7 +230,7 @@ export default function LarderScreen() {
                     onPress={() => go("/add")}
                 />
                 <ListRow
-                    title="Scan a receipt"
+                    title="Add from a receipt"
                     subtitle="Add everything on a till receipt"
                     onPress={() => go("/receipt")}
                 />

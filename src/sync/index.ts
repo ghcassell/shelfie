@@ -132,8 +132,8 @@ export async function joinHousehold(code: string, displayName: string) {
 }
 
 /** "Improve with AI": the only place a receipt photo leaves the phone. */
-export async function improveReceipt(imageBase64: string): Promise<unknown> {
-  const { data, error } = await supabase.functions.invoke('receipt-ai', { body: { image: imageBase64 } });
+export async function improveReceipt(body: { image: string } | { text: string }): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke('receipt-ai', { body });
   if (error) throw new Error('Could not reach the AI service. Check your connection.');
   return data;
 }
