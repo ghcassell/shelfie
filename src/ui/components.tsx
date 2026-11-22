@@ -87,7 +87,7 @@ export function Chip({ label, selected, onPress, icon, big, warn }: { label: str
       onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!selected }}
       style={[s.chip, selected && s.chipSelected, warn && { borderColor: color.orange }, warn && selected && { backgroundColor: color.orange }]} hitSlop={{ top: 8, bottom: 8 }}
     >
-      {icon && <MaterialCommunityIcons name={icon} size={16} color={ink} />}
+      {icon && <MaterialCommunityIcons name={icon} size={20} color={ink} />}
       <Text style={[s.chipText, { color: ink }, big && { fontSize: font.lg }]}>{label}</Text>
     </Pressable>
   );
@@ -358,7 +358,7 @@ export const s = StyleSheet.create({
   buttonPrimary: { backgroundColor: color.primary },
   buttonOutline: { borderWidth: 1, borderColor: color.primary, backgroundColor: color.surface },
   buttonText: { fontSize: font.md, fontWeight: '600', flexShrink: 1, textAlign: 'center' },
-  chip: { minHeight: 36, paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.full, borderWidth: 1, borderColor: color.brand, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surface },
+  chip: { minHeight: 36, paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.full, borderWidth: 1, borderColor: color.brand, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surface },
   chipSelected: { backgroundColor: color.primary, borderColor: color.primary },
   chipText: { fontSize: font.sm, color: color.ink, flexShrink: 1 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },

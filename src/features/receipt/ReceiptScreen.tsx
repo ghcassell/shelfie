@@ -112,7 +112,7 @@ export default function ReceiptScreen() {
       {!lines ? (
         <ScrollView contentContainerStyle={[s.body, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           <View style={s.chipRow}>
-            <Chip big icon="camera-outline" label="Photo" selected={mode === 'photo'} onPress={() => setMode('photo')} />
+            <Chip big icon="camera-outline" label="Photo" selected={mode === 'photo'} onPress={() => setMode('photo')}  />
             <Chip big icon="email-outline" label="Emailed receipt" selected={mode === 'email'} onPress={() => setMode('email')} />
           </View>
           {mode === 'photo' ? (
