@@ -1,14 +1,17 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { File } from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useIsFocused } from 'expo-router';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Camera, type CameraRef, useCameraDevice, useCameraPermission, usePhotoOutput } from 'react-native-vision-camera';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Camera, type CameraRef, type Frame, useCameraDevice, useCameraPermission, useFrameOutput, usePhotoOutput } from 'react-native-vision-camera';
 import { type TargetBarcodeFormat, useBarcodeScannerOutput } from 'react-native-vision-camera-barcode-scanner';
 import { processImageTextRecognition } from 'react-native-vision-camera-mlkit';
+import { scheduleOnRN } from 'react-native-worklets';
 import type { OcrLine } from '../../domain/receipt';
 import { Button, IconButton, ProductTile, s, Sheet } from '../../ui/components';
-import { color, radius, space } from '../../ui/theme';
+import { color, font, radius, space } from '../../ui/theme';
+import { type Light, lightOf } from './light';
 
 /** Asks for the camera, or explains how to carry on without it. */
 function CameraGate({ children }: { children: ReactNode }) {
@@ -21,6 +24,48 @@ function CameraGate({ children }: { children: ReactNode }) {
         Shelfie needs the camera to scan. Allow it in Android settings, or enter the details by hand.
       </Text>
     </View>
+  );
+}
+
+/**
+ * Watches how bright the preview is, so the user hears about a covered lens or a dark room before the shot, not after a failed read.
+ * A new reading only counts once it has held for a second: auto-exposure takes that long to settle, and a passing shadow should not flash a warning.
+ */
+function useLightCheck() {
+  const [light, setLight] = useState<Light>('ok');
+  const seen = useRef({ light: 'ok' as Light, since: 0 });
+  const report = useCallback((next: Light) => {
+    const now = Date.now();
+    if (next !== seen.current.light) seen.current = { light: next, since: now };
+    else if (now - seen.current.since >= SETTLE_MS) setLight(next);
+  }, []);
+  const onFrame = useCallback((frame: Frame) => {
+    'worklet';
+    try {
+      // YUV: the first plane is brightness alone. A non-planar frame is left unchecked rather than guessed at.
+      const luma = frame.getPlanes()[0];
+      if (luma) scheduleOnRN(report, lightOf(new Uint8Array(luma.getPixelBuffer())));
+    } finally {
+      frame.dispose();
+    }
+  }, [report]);
+  // Small frames: an average brightness needs no detail, and the photo output keeps full resolution.
+  const output = useFrameOutput({ pixelFormat: 'yuv', targetResolution: LIGHT_RESOLUTION, onFrame, onFrameDropped: () => {} });
+  return { light, output };
+}
+
+/** Says what is wrong with the light, over the bottom of the preview. With a torch to hand, tapping it turns the torch on. */
+function LightHint({ light, onTorch }: { light: Light; onTorch?: () => void }) {
+  if (light === 'ok') return null;
+  const text = light === 'black' ? 'Can’t see anything. Is the lens covered?' : onTorch ? 'Too dark. Tap to turn on the torch.' : 'Too dark. Find more light.';
+  return (
+    <Pressable
+      style={st.hint} onPress={light === 'dark' ? onTorch : undefined} disabled={light !== 'dark' || !onTorch}
+      accessibilityLiveRegion="polite" accessibilityRole={light === 'dark' && onTorch ? 'button' : 'alert'}
+    >
+      <MaterialCommunityIcons name={light === 'black' ? 'eye-off-outline' : 'weather-night'} size={20} color="#fff" />
+      <Text style={st.hintText}>{text}</Text>
+    </Pressable>
   );
 }
 
@@ -71,6 +116,7 @@ export function TextCamera({ label, onText, tall }: { label: string; onText: (re
   const [error, setError] = useState('');
   const [frameWidth, setFrameWidth] = useState(0);
   const [torch, setTorch] = useState(false);
+  const { light, output: lightCheck } = useLightCheck();
   const camera = useRef<CameraRef>(null);
 
   const capture = async () => {
@@ -116,7 +162,7 @@ export function TextCamera({ label, onText, tall }: { label: string; onText: (re
         {device && (
           <Camera
             ref={camera} torchMode={torch && focused ? 'on' : 'off'}
-            style={StyleSheet.absoluteFill} device={device} isActive={focused} outputs={[photo]} resizeMode="cover"
+            style={StyleSheet.absoluteFill} device={device} isActive={focused} outputs={[photo, lightCheck]} resizeMode="cover"
             zoom={tall ? undefined : Math.min(ZOOM, device.maxZoom)} enableNativeTapToFocusGesture
             // VisionCamera sets the zoom a second time before the session has started, which CameraX rejects. The zoom is already applied as the initial zoom, so that one is noise.
             onError={(e) => { if (!e.message.includes('Camera is not active')) console.warn('Text camera', e); }}
@@ -128,6 +174,7 @@ export function TextCamera({ label, onText, tall }: { label: string; onText: (re
             <IconButton icon={torch ? 'flashlight' : 'flashlight-off'} label={torch ? 'Turn torch off' : 'Turn torch on'} onPress={() => setTorch(!torch)} tint="#fff" />
           </View>
         )}
+        <LightHint light={light} onTorch={device?.hasTorch && !torch ? () => setTorch(true) : undefined} />
       </View>
       <Button label={busy ? 'Reading…' : label} icon="camera" onPress={capture} disabled={busy || !device} />
       {!!error && <Text style={s.error}>{error}</Text>}
@@ -140,6 +187,7 @@ export function PhotoCamera({ onPhoto }: { onPhoto: (dataUri: string) => void })
   const focused = useIsFocused();
   const device = useCameraDevice('back');
   const photo = usePhotoOutput({});
+  const { light, output: lightCheck } = useLightCheck();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -169,7 +217,8 @@ export function PhotoCamera({ onPhoto }: { onPhoto: (dataUri: string) => void })
   return (
     <CameraGate>
       <View style={st.frame}>
-        {device && <Camera style={StyleSheet.absoluteFill} device={device} isActive={focused} outputs={[photo]} resizeMode="cover" enableNativeTapToFocusGesture />}
+        {device && <Camera style={StyleSheet.absoluteFill} device={device} isActive={focused} outputs={[photo, lightCheck]} resizeMode="cover" enableNativeTapToFocusGesture />}
+        <LightHint light={light} />
       </View>
       <Button label={busy ? 'Saving…' : 'Take photo'} icon="camera" onPress={capture} disabled={busy || !device} />
       {!!error && <Text style={s.error}>{error}</Text>}
@@ -201,10 +250,17 @@ const FRAME = 260;
 const TALL = 420;
 const ZOOM = 3; // date camera only. Tune on a real phone: higher reads smaller print but shakes more.
 const BOX = { width: 0.8, height: 100 }; // share of the frame's width, and points
+const SETTLE_MS = 1000;
+const LIGHT_RESOLUTION = { width: 320, height: 240 };
 
 const st = StyleSheet.create({
   frame: { height: FRAME, borderRadius: radius.md, overflow: 'hidden', backgroundColor: color.ink },
   box: { position: 'absolute', left: '10%', width: '80%', top: (FRAME - BOX.height) / 2, height: BOX.height, borderWidth: 2, borderColor: '#fff', borderRadius: radius.sm },
   torch: { position: 'absolute', top: space.sm, right: space.sm, backgroundColor: '#000', borderWidth: 2, borderColor: '#fff', borderRadius: radius.full },
+  hint: {
+    position: 'absolute', left: space.sm, right: space.sm, bottom: space.sm, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: space.sm,
+    paddingHorizontal: space.md, paddingVertical: space.sm, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: radius.md,
+  },
+  hintText: { flex: 1, color: '#fff', fontSize: font.md },
   center: { alignItems: 'center', justifyContent: 'center', padding: space.xl },
 });
