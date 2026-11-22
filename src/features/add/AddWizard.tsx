@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useLarder } from '../../db/queries';
@@ -24,9 +24,8 @@ const TITLES: Record<Step, string> = {
 const EMPTY = { name: '', brand: '', size: '', category: '', baseUnit: 'count' as BaseUnit, packAmount: '1', imageUrl: null as string | null };
 
 export default function AddWizard() {
-  const params = useLocalSearchParams<{ several?: string }>();
   const { locations, products } = useLarder();
-  const [several, setSeveral] = useState(params.several === '1');
+  const [several, setSeveral] = useState(false); // becomes true after "Save & add another"
   const [step, setStep] = useState<Step>('scan');
   const [barcode, setBarcode] = useState<string | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
@@ -137,7 +136,7 @@ export default function AddWizard() {
   };
   const set = (patch: Partial<typeof EMPTY>) => setDraft((d) => ({ ...d, ...patch }));
 
-  const common = { heading: several ? 'Add several' : 'Add one', onExit: exit, step: ORDER.indexOf(step) + 1, of: ORDER.length, title: TITLES[step], onBack: back };
+  const common = { heading: 'Add items', onExit: exit, step: ORDER.indexOf(step) + 1, of: ORDER.length, title: TITLES[step], onBack: back };
 
   return (
     <>
@@ -228,10 +227,12 @@ export default function AddWizard() {
         </WizardStep>
       )}
 
-      <Sheet visible={summary} onClose={() => router.back()} title="All added">
-        <Text style={s.text}>
-          Added {tally.added} Batches · {tally.needDate} need a date · {tally.noDetails} new Products with no details
-        </Text>
+      <Sheet visible={summary} onClose={() => router.back()} title={`${tally.added} items added`}>
+        {tally.needDate + tally.noDetails > 0 && (
+          <Text style={s.text}>
+            {[tally.needDate && `${tally.needDate} need an expiry date`, tally.noDetails && `${tally.noDetails} new ${tally.noDetails === 1 ? 'product has' : 'products have'} no details`].filter(Boolean).join(' · ')}
+          </Text>
+        )}
         <View style={{ gap: space.sm }}>
           {tally.needDate + tally.noDetails > 0 && <Button label="Go to Needs attention" onPress={() => router.replace('/attention')} />}
           <Button label="Done" kind={tally.needDate + tally.noDetails > 0 ? 'secondary' : 'primary'} onPress={() => router.back()} />

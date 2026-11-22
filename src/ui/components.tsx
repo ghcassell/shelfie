@@ -193,7 +193,7 @@ export function WizardStep({ heading, onExit, step, of, title, children, onBack,
       <BottomBar>
         <Button label="Back" kind="secondary" onPress={onBack} />
         <View style={{ flex: 1 }} />
-        {onSaveNext && <Button label="Save & scan next" kind="secondary" onPress={onSaveNext} disabled={nextDisabled} />}
+        {onSaveNext && <Button label="Save & add another" kind="secondary" onPress={onSaveNext} disabled={nextDisabled} />}
         {onNext && <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} />}
       </BottomBar>
     </View>

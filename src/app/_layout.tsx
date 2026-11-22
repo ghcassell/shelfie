@@ -22,9 +22,10 @@ import { color } from '../ui/theme';
 // first real screen. App (or an error screen) releases it once there is something to show.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// Hide on the root view's first layout, not in useEffect: the effect fires on JS commit, before the native views have
+// drawn, so the dark window showed through for a frame. The surface background covers any remaining gap.
 function Ready({ children }: { children: ReactNode }) {
-  useEffect(() => { SplashScreen.hideAsync().catch(() => {}); }, []);
-  return <>{children}</>;
+  return <View style={{ flex: 1, backgroundColor: color.surface }} onLayout={() => SplashScreen.hide()}>{children}</View>;
 }
 
 export default function RootLayout() {

@@ -47,7 +47,7 @@ export default function LarderScreen() {
     );
     const filtered = !!query || !!locationId || openedOnly;
     const anyExpired = attention.some((r) => r.urgency === "expired");
-    const go = (path: "/add" | "/add?several=1" | "/receipt") => {
+    const go = (path: "/add" | "/receipt") => {
         setAdding(false);
         router.push(path);
     };
@@ -209,14 +209,9 @@ export default function LarderScreen() {
                 title="Add"
             >
                 <ListRow
-                    title="Add one"
-                    subtitle="Scan a barcode or enter by hand"
+                    title="Add items"
+                    subtitle="Scan barcodes or enter by hand"
                     onPress={() => go("/add")}
-                />
-                <ListRow
-                    title="Add several"
-                    subtitle="Keep scanning after a big shop"
-                    onPress={() => go("/add?several=1")}
                 />
                 <ListRow
                     title="Scan a receipt"

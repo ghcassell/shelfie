@@ -36,14 +36,14 @@ Dependencies install with `legacy-peer-deps` (set in `.npmrc`) because `react-na
 `npm run apk` with a phone connected over USB, or build without a phone and side-load the file:
 
 ```sh
-npx expo prebuild --platform android
+npm run android:prebuild
 cd android && ./gradlew assembleRelease     # android/app/build/outputs/apk/release/app-release.apk
 adb install app/build/outputs/apk/release/app-release.apk
 ```
 
 **Windows path limit.** The native (C++) step fails on Windows with `ninja: error: mkdir(...): No such file or directory` because object paths exceed 260 characters. It needs both: long paths enabled (admin PowerShell: `Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem LongPathsEnabled 1`, then restart the terminal) and Ninja 1.12 or newer (the SDK's CMake 3.22.1 ships 1.10.2; install a newer CMake from the Android Studio SDK Manager, or replace `ninja.exe` in `<sdk>/cmake/3.22.1/bin`). Not yet verified on this machine.
 
-`android/` is generated; never edit it by hand (change `app.json` and re-run prebuild).
+`android/` is generated; never edit it by hand. `expo run:android` (and every `android:*` script) only generates it when the folder is missing, so after changing `app.json`, a config plugin (`plugins/`), or adding a package with native code, run `npm run android:prebuild` before the next install. If you skip it, the change silently doesn't reach the app. Prebuild wipes `android/`, so the next build is a full native rebuild (several minutes).
 
 **Signing.** Out of the box the release APK is signed with the Android debug keystore, which differs per computer. For one stable keystore kept outside the repo, create it once and point Gradle at it from your user-level `~/.gradle/gradle.properties`:
 
