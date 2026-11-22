@@ -1,16 +1,19 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
     FlatList,
     Platform,
     Pressable,
     RefreshControl,
     ScrollView,
+    Text,
     TextInput,
     View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { useLarder } from "../../db/queries";
+import { updateBatch } from "../../db/repositories";
 import { matchesSearch, TO_PUT_AWAY } from "../../domain/larder";
 import { sync, useSyncStatus } from "../../sync";
 import {
@@ -38,6 +41,24 @@ export default function LarderScreen() {
         pickedLocationId === TO_PUT_AWAY && !toPutAway ? null : pickedLocationId;
     const [openedOnly, setOpenedOnly] = useState(false);
     const [adding, setAdding] = useState(false);
+    const [picked, setPicked] = useState<Set<string>>(new Set());
+    const selectMode = picked.size > 0;
+    // Stable identity (not a fresh closure per render) so BatchItem's memo only re-renders the row that changed,
+    // not every visible row, on each tap.
+    const toggle = useCallback((id: string) => {
+        setPicked((s) => {
+            const n = new Set(s);
+            if (n.has(id)) n.delete(id);
+            else n.add(id);
+            return n;
+        });
+    }, []);
+    const moveTo = (id: string | null, label: string) => {
+        const n = picked.size;
+        picked.forEach((batchId) => updateBatch(batchId, { locationId: id }));
+        setPicked(new Set());
+        Toast.show({ type: "success", text1: `Moved ${n} ${n === 1 ? "item" : "items"} to ${label}` });
+    };
 
     const rows = larder.filter(
         (r) =>
@@ -186,8 +207,18 @@ export default function LarderScreen() {
             <FlatList
                 data={rows}
                 keyExtractor={(r) => r.batch.id}
+                // Selecting flips a checkbox glyph and an edge strip on the row, which can nudge its measured
+                // height by a sub-pixel with no getItemLayout to fall back on; without this, FlatList "corrects"
+                // the scroll offset to match and the list visibly jumps under your thumb.
+                maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
                 renderItem={({ item }) => (
-                    <BatchItem row={item} today={today} />
+                    <BatchItem
+                        row={item}
+                        today={today}
+                        selectMode={selectMode}
+                        selected={picked.has(item.batch.id)}
+                        onToggle={toggle}
+                    />
                 )}
                 contentContainerStyle={{ flexGrow: 1, paddingBottom: 96 }}
                 refreshControl={
@@ -218,7 +249,26 @@ export default function LarderScreen() {
                     )
                 }
             />
-            <FAB label="Add to the larder" onPress={() => setAdding(true)} />
+            {selectMode ? (
+                <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: color.surface, borderTopWidth: 1, borderTopColor: color.line, paddingVertical: space.sm }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: space.screen, gap: space.sm }}>
+                        <IconButton icon="close" label="Cancel selection" onPress={() => setPicked(new Set())} />
+                        <Text style={s.rowTitle}>{picked.size} selected</Text>
+                    </View>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.screen, paddingVertical: space.xs }}
+                    >
+                        <Chip warn label="Put away later" onPress={() => moveTo(null, TO_PUT_AWAY)} />
+                        {locations.map((l) => (
+                            <Chip key={l.id} label={`Move to ${l.name}`} onPress={() => moveTo(l.id, l.name)} />
+                        ))}
+                    </ScrollView>
+                </View>
+            ) : (
+                <FAB label="Add to the larder" onPress={() => setAdding(true)} />
+            )}
             <Sheet
                 visible={adding}
                 onClose={() => setAdding(false)}

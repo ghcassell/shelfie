@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Children, type ComponentProps, type ComponentRef, createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated, Dimensions, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputProps, View, type ViewStyle,
+  Animated, Dimensions, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputProps, View, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatAmount, stepFor } from '../domain/amount';
@@ -119,25 +119,35 @@ export function ProductTile({ name, category, imageUrl, size = 44 }: { name: str
   );
 }
 
-export function ListRow({ title, subtitle, left, right, edge, onPress, accessibilityLabel }: {
-  title: string; subtitle?: string; left?: ReactNode; right?: ReactNode; edge?: string; onPress?: () => void; accessibilityLabel?: string;
+export function ListRow({ title, subtitle, left, right, edge, onPress, onLongPress, accessibilityLabel }: {
+  title: string; subtitle?: string; left?: ReactNode; right?: ReactNode; edge?: string; onPress?: () => void; onLongPress?: () => void; accessibilityLabel?: string;
 }) {
   return (
     // `right` is a sibling of the Pressable, not a child: on web a <button> can't nest another <button>.
-    <View style={s.row}>
+    // The row's own padding lives on the Pressable, not this outer View, so the ripple/pressed state fills
+    // the whole block edge to edge instead of a smaller rectangle floating inside the padding.
+    <View style={[s.row, { paddingVertical: 0, paddingLeft: 0, paddingRight: Platform.OS === 'web' ? space.screen : 0 }]}>
       {/* The urgency edge is its own strip, not a left border: Android drops the divider on rows whose borders differ in colour and width. */}
       {edge && <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: edge }} />}
       <Pressable
-        onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={accessibilityLabel}
-        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md }}
+        onPress={onPress} onLongPress={onLongPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={accessibilityLabel}
+        android_ripple={onPress ? { color: color.line } : undefined}
+        style={({ pressed }) => [
+          { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, paddingLeft: space.screen, paddingRight: Platform.OS === 'web' ? 0 : space.screen },
+          // The ripple on Android is already the press feedback; dimming on top of it flattens the ripple into a plain grey wash.
+          pressed && Platform.OS !== 'android' && { opacity: 0.6 },
+        ]}
       >
         {left}
         <View style={{ flex: 1 }}>
           <Text style={s.rowTitle}>{title}</Text>
           {!!subtitle && <Text style={s.rowSubtitle}>{subtitle}</Text>}
         </View>
+        {/* Inside the Pressable on native so the ripple reaches the full row; kept a sibling on web, where this
+            Pressable renders as a <button> and `right` often holds its own interactive buttons — nested <button>s are invalid HTML. */}
+        {Platform.OS !== 'web' && right}
       </Pressable>
-      {right}
+      {Platform.OS === 'web' && right}
     </View>
   );
 }
