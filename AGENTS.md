@@ -36,6 +36,8 @@ Use these npm scripts instead of raw `expo run:android` flags — they map direc
 
 Installing one variant does not remove the other. Don't construct `expo run:android` commands by hand for this — use the matching script.
 
+These scripts only generate `android/` when it is missing, so it goes stale. If `app.json`, `plugins/`, or a native dependency changed since the last prebuild, run `npm run android:prebuild` first. If a native-level bug (theme, splash, icon, permission) doesn't match `app.json`, suspect a stale `android/` before changing code. Prebuild wipes `android/`, so don't run it before every install.
+
 ## Navigation & Routing
 
 - Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
