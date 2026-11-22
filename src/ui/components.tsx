@@ -191,10 +191,20 @@ export function WizardStep({ heading, onExit, step, of, title, children, onBack,
         <Form>{children}</Form>
       </Body>
       <BottomBar>
-        <Button label="Back" kind="secondary" onPress={onBack} />
-        <View style={{ flex: 1 }} />
-        {onSaveNext && <Button label="Save & add another" kind="secondary" onPress={onSaveNext} disabled={nextDisabled} />}
-        {onNext && <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} />}
+        {onSaveNext ? (
+          // Final step: primary Save full width on top, then the secondary actions stacked below.
+          <View style={{ width: '100%', gap: space.sm }}>
+            {onNext && <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} />}
+            <Button label="Save & add another" kind="secondary" onPress={onSaveNext} disabled={nextDisabled} />
+            <Button label="Back" kind="secondary" onPress={onBack} />
+          </View>
+        ) : (
+          <>
+            <Button label="Back" kind="secondary" onPress={onBack} />
+            <View style={{ flex: 1 }} />
+            {onNext && <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} />}
+          </>
+        )}
       </BottomBar>
     </View>
   );
@@ -370,10 +380,10 @@ export const s = StyleSheet.create({
   progressFill: { height: 4, borderRadius: radius.full, backgroundColor: color.brand },
   bottomBar: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingHorizontal: space.screen, paddingTop: space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.primary, backgroundColor: color.surface },
   qtyRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  qtyInput: { flex: 1, minHeight: TOUCH, borderWidth: 1, borderColor: color.line, borderRadius: radius.sm, paddingHorizontal: space.md, fontSize: font.lg, color: color.ink, textAlign: 'center' },
+  qtyInput: { flex: 1, minHeight: TOUCH, borderWidth: 1, borderColor: color.inputBorder, borderRadius: radius.sm, paddingHorizontal: space.md, fontSize: font.lg, color: color.ink, textAlign: 'center' },
   qtyUnit: { fontSize: font.md, color: color.inkMuted },
   label: { fontSize: font.sm, color: color.inkMuted },
-  input: { minHeight: TOUCH, borderWidth: 1, borderColor: color.line, borderRadius: radius.sm, paddingHorizontal: space.md, fontSize: font.md, color: color.ink },
+  input: { minHeight: TOUCH, borderWidth: 1, borderColor: color.inputBorder, borderRadius: radius.sm, paddingHorizontal: space.md, fontSize: font.md, color: color.ink },
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(22,48,42,0.4)' },
   sheetDock: { flex: 1, justifyContent: 'flex-end' },
   sheet: { backgroundColor: color.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: space.lg, gap: space.md, maxHeight: '80%', elevation: 12 },

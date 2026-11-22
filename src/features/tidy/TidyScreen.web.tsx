@@ -69,10 +69,19 @@ export default function TidyScreen() {
       <div style={st.bar}>
         <button style={st.button} onClick={() => (router.canGoBack() ? router.back() : router.replace('/'))}>← Back</button>
         <h1 style={st.title}>Tidy the larder</h1>
-        <input
-          style={{ ...st.input, ...st.boxed, width: 260 }} placeholder="Search name or brand" aria-label="Search the larder"
-          value={query} onChange={(e) => setQuery(e.target.value)}
-        />
+        <div style={{ position: 'relative', width: 260 }}>
+          <span aria-hidden style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: color.placeholder }}>🔍︎</span>
+          <input
+            style={{ ...st.input, ...st.boxed, width: '100%', padding: '6px 32px' }} placeholder="Search name or brand" aria-label="Search the larder"
+            value={query} onChange={(e) => setQuery(e.target.value)}
+          />
+          {query && (
+            <button
+              aria-label="Clear search" onClick={() => setQuery('')}
+              style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', border: 0, background: 'none', cursor: 'pointer', color: color.inkMuted, fontSize: 16 }}
+            >✕</button>
+          )}
+        </div>
         <span style={st.muted}>{rows.length} {rows.length === 1 ? 'Batch' : 'Batches'}. Click a cell to edit it; name, brand, size and category belong to the Product, so they change on all its Batches.</span>
       </div>
 
@@ -180,7 +189,7 @@ const st: Record<string, CSSProperties> = {
   th: { position: 'sticky', top: 0, zIndex: 1, backgroundColor: color.surface, textAlign: 'left', padding: space.sm, borderBottom: `2px solid ${color.line}`, whiteSpace: 'nowrap' },
   td: { padding: `2px ${space.sm}px`, borderBottom: `1px solid ${color.line}` },
   input: { ...text, width: '100%', boxSizing: 'border-box', padding: '6px 4px', border: '1px solid transparent', borderRadius: radius.sm, backgroundColor: 'transparent' },
-  boxed: { borderColor: color.line, backgroundColor: color.surface },
+  boxed: { borderColor: color.inputBorder, backgroundColor: color.surface },
   button: { ...text, padding: '6px 12px', border: `1px solid ${color.primary}`, borderRadius: radius.sm, backgroundColor: color.surface, color: color.primary, cursor: 'pointer' },
   sort: { ...text, fontWeight: 600, padding: 0, border: 'none', background: 'none', color: color.dark, cursor: 'pointer' },
 };

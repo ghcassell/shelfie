@@ -9,6 +9,7 @@ export const color = {
   inkMuted: '#5d7068',
   placeholder: '#90a79e', // TextInput placeholder only; lighter than inkMuted
   line: '#dfe8e5',
+  inputBorder: '#8aa399', // text field outline; darker than line so fields don't look disabled
   surface: '#fff',
   red: '#C62828',
   amber: '#F5B335',

@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
     FlatList,
     Platform,
+    Pressable,
     RefreshControl,
     ScrollView,
     TextInput,
@@ -96,7 +97,7 @@ export default function LarderScreen() {
                         }}
                     >
                         <TextInput
-                            style={[s.input, { paddingRight: 44 }]}
+                            style={[s.input, { paddingLeft: 44, paddingRight: 44 }]}
                             placeholder="Search name or brand"
                             placeholderTextColor={color.placeholder}
                             value={query}
@@ -110,10 +111,25 @@ export default function LarderScreen() {
                             color={color.placeholder}
                             style={{
                                 position: "absolute",
-                                right: space.md,
+                                left: space.md,
                                 pointerEvents: "none",
                             }}
                         />
+                        {query.length > 0 && (
+                            <Pressable
+                                onPress={() => setQuery("")}
+                                accessibilityRole="button"
+                                accessibilityLabel="Clear search"
+                                hitSlop={8}
+                                style={{ position: "absolute", right: space.md }}
+                            >
+                                <MaterialCommunityIcons
+                                    name="close"
+                                    size={22}
+                                    color={color.inkMuted}
+                                />
+                            </Pressable>
+                        )}
                     </View>
                     <View>
                         <ScrollView
