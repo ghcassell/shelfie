@@ -250,7 +250,7 @@ export default function LarderScreen() {
                 }
             />
             {selectMode ? (
-                <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: color.surface, borderTopWidth: 1, borderTopColor: color.line, paddingVertical: space.sm }}>
+                <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: color.tintMuted, borderTopWidth: 1, borderTopColor: color.line, paddingVertical: space.sm }}>
                     <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: space.screen, gap: space.sm }}>
                         <IconButton icon="close" label="Cancel selection" onPress={() => setPicked(new Set())} />
                         <Text style={s.rowTitle}>{picked.size} selected</Text>

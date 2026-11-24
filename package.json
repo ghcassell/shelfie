@@ -59,6 +59,7 @@
     "android": "expo run:android",
     "android:prebuild": "expo prebuild --platform android --no-install",
     "android:dev:emu": "expo run:android --variant debug --app-id com.shelfie.app.dev",
+    "android:dev:start": "set APP_VARIANT=dev&& set EXPO_RUN_PREFER_APP_CONFIG_ID=1&& %ANDROID_HOME%/platform-tools/adb reverse tcp:8081 tcp:8081 && expo start --dev-client",
     "android:dev:device": "expo run:android --variant debug --app-id com.shelfie.app.dev --device",
     "android:prod:emu": "expo run:android --variant release --no-bundler",
     "android:prod:device": "expo run:android --variant release --device --no-bundler",

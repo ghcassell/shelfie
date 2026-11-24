@@ -13,12 +13,42 @@ Shared, offline-first Android pantry app for one Household. Spec: `SPEC.md`. Ter
 
 ## Commands
 
-```sh
-npm test            # Jest: domain rules + sync engine (in-memory SQLite)
-npm run typecheck
-npm run db:generate # after editing src/db/schema.ts; then hand-write the same-numbered file in supabase/migrations/
-npm run apk         # release APK onto a connected phone (npx expo run:android --variant release)
-```
+All are `npm run <script>` (`npm test` for the first). Run lint and typecheck before calling work done.
+
+### Checks
+
+| Script | Use when | What it does |
+|---|---|---|
+| `test` | After changing `src/domain/` or `src/sync/` | Jest over `src/**/*.test.ts`: domain rules and sync engine (in-memory SQLite). |
+| `typecheck` | Before finishing any change | `tsc --noEmit`. |
+| `lint` | Before finishing any change | `expo lint` (ESLint). |
+| `db:generate` | After editing `src/db/schema.ts` | `drizzle-kit generate` writes a new SQLite migration. Then hand-write the same-numbered file in `supabase/migrations/`. |
+
+### Daily development (debug build, JS served by Metro)
+
+The **dev** app (`com.shelfie.app.dev`) is a separate install from the **prod** app, so both can sit on one device and neither overwrites the other. Dev builds don't contain the JS; they load it from Metro, so Metro must be running.
+
+| Script | Use when | What it does |
+|---|---|---|
+| `android:dev:emu` | First install of dev, or after a native change (new native package, `app.json`, `plugins/`; run `android:prebuild` first) | Builds the debug APK as `com.shelfie.app.dev` and installs it on the emulator, then starts Metro. |
+| `android:dev:device` | Same, onto a USB phone | As above with `--device`. |
+| `android:dev:start` | Every normal coding session once dev is installed | Sets `APP_VARIANT=dev` (so `app.config.js` targets the dev id and pressing `a` finds the app), runs `adb reverse tcp:8081 tcp:8081` so the phone/emulator can reach Metro, then `expo start --dev-client`. No rebuild. Needs `ANDROID_HOME` set; Windows `cmd` syntax. |
+| `start` | Metro only, when `adb reverse` isn't needed or is already done | `expo start --dev-client`. Does **not** set `APP_VARIANT`, so `a` targets the prod id; prefer `android:dev:start` for the dev app. |
+| `android` | Rarely; installs a debug build under the default (prod) id | `expo run:android`. Prefer `android:dev:*`. |
+| `web` | Quick UI check in a browser (no camera, notifications or native SQLite behaviour) | `expo start --web`. |
+
+JS-only changes never need a rebuild: edit, and Metro reloads. Rebuild (`android:dev:*`) only for native changes.
+
+### Release / prod (JS bundled into the APK, no Metro)
+
+| Script | Use when | What it does |
+|---|---|---|
+| `android:prod:emu` | Testing the real release build on the emulator | `expo run:android --variant release --no-bundler`; installs the release build as `com.shelfie.app`. |
+| `android:prod:device` | Putting the app you actually use onto your phone | Same, onto a USB device (`--device`). |
+| `apk` | Same as `android:prod:emu`, kept as the short name | Release build onto whichever device/emulator is connected. |
+| `android:prebuild` | After changing `app.json`, `plugins/`, or adding a native package; or when a native-level bug (theme, splash, icon, permission) doesn't match config | `expo prebuild --platform android --no-install`. **Wipes and regenerates `android/`**, so the next build is a full native rebuild (minutes). Don't run it before every install. Never set `APP_VARIANT` for it. |
+
+Installing one variant never removes the other.
 
 Dependencies install with `legacy-peer-deps` (set in `.npmrc`) because `react-native-vision-camera-mlkit` asks for `@expo/config-plugins ^57`.
 

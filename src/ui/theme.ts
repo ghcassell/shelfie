@@ -5,6 +5,7 @@ export const color = {
   brand: '#1D9E75', // accents and large icons only
   dark: '#0c6b58', // titles
   tint: '#E1F5EE',
+  tintMuted: '#f1fffa',
   ink: '#1d4038',
   inkMuted: '#5d7068',
   placeholder: '#90a79e', // TextInput placeholder only; lighter than inkMuted
