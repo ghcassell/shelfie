@@ -137,3 +137,10 @@ export async function improveReceipt(body: { image: string } | { text: string })
   if (error) throw new Error('Could not reach the AI service. Check your connection.');
   return data;
 }
+
+/** "Recipe ideas": sends Product names and how soon they expire, nothing else. Same Edge Function, different input. */
+export async function suggestRecipes(larder: string[]): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke('receipt-ai', { body: { larder } });
+  if (error) throw new Error('Could not reach the AI service. Check your connection.');
+  return data;
+}

@@ -1,6 +1,8 @@
 import { parseExpiryDates } from './dateParser';
 import { gtinFromScan, isShopCode } from './off';
 import { aliasKey, guessUnit, linesFromAi, matchProduct, parseReceipt, rowsFromOcr, rowsFromText } from './receipt';
+import type { LarderRow } from './larder';
+import { larderForAi, recipesFromAi } from './recipes';
 
 const TODAY = '2026-11-14';
 
@@ -134,6 +136,26 @@ describe('receipt parser', () => {
       { name: 'Eggs', quantity: 1, pricePence: null, ticked: true },
     ]);
     expect(() => linesFromAi({ nope: 1 })).toThrow();
+  });
+});
+
+describe('recipe ideas', () => {
+  const row = (id: string, name: string, urgency: string, date: string | null, remaining = 1) =>
+    ({ product: { id, name }, urgency, date, remaining }) as unknown as LarderRow;
+  test('one line per Product in stock, past use-by left out', () => {
+    expect(larderForAi([
+      row('ham', 'Ham', 'expired', '2026-11-13'),
+      row('milk', 'Milk', 'expiring_soon', '2026-11-16'),
+      row('milk', 'Milk', 'fine', '2026-11-30'),
+      row('eggs', 'Eggs', 'fine', '2026-11-20', 0),
+      row('rice', 'Rice', 'no_expiry', null),
+    ], TODAY)).toEqual(['Milk (expires in 2 days)', 'Rice (no expiry)']);
+  });
+  test('reads the AI reply defensively', () => {
+    expect(recipesFromAi({ recipes: [{ title: ' Omelette ', uses: ['Eggs', 3], steps: ['Whisk', ''] }, { title: '' }] })).toEqual([
+      { title: 'Omelette', uses: ['Eggs'], missing: [], steps: ['Whisk'] },
+    ]);
+    expect(() => recipesFromAi({ nope: 1 })).toThrow();
   });
 });
 
