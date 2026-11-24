@@ -68,6 +68,7 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
+    "deploy:ai": "npx supabase functions deploy receipt-ai --remote=itvdngxrbvmhrhfgmdzu --yes",
     "lint": "expo lint"
   },
   "jest": {
